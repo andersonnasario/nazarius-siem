@@ -1,0 +1,110 @@
+# =============================================================================
+# Nazarius SIEM - Root .gitignore
+# =============================================================================
+
+# ---- Environment & Secrets ----
+.env
+.env.*
+*.env
+!.env.example
+
+# Credentials & Keys
+credentials.json
+service-account*.json
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+secrets/
+.secrets/
+
+# ---- OS Files ----
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*~
+.directory
+.Trash-*
+
+# ---- IDE / Editor ----
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.settings/
+
+# ---- Go (Backend) ----
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+vendor/
+go.work
+
+# ---- Node (Frontend) ----
+node_modules/
+.pnp
+.pnp.js
+.npm
+.eslintcache
+*.tgz
+
+# ---- Build Outputs ----
+build/
+dist/
+out/
+bin/
+*.o
+*.a
+
+# ---- Logs ----
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ---- Database ----
+*.db
+*.sqlite
+*.sqlite3
+
+# ---- Terraform ----
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# ---- Docker ----
+docker-compose.override.yml
+
+# ---- Coverage ----
+coverage/
+coverage.txt
+coverage.html
+*.coverprofile
+
+# ---- Temp ----
+tmp/
+temp/
+*.tmp
+*.bak
+*.backup
+
+# ---- Archives ----
+*.zip
+*.tar
+*.tar.gz
+*.rar

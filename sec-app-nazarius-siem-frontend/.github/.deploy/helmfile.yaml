@@ -1,0 +1,22 @@
+environments:
+  prd:
+    values:
+      - values/prd.yaml
+---
+
+helmDefaults:
+  wait: true
+  timeout: 300
+  atomic: true
+
+repositories:
+  - name: fp
+    url: git+ssh://git@github.com/Superlogica/helm-charts@charts?ref=master&sparse=0
+
+releases:
+  - name: sec-app-nazarius-siem-frontend
+    namespace: sec-app-nazarius-siem-frontend
+    chart: fp/fp-helm-chart
+    version: 0.2.0
+    values:
+      - values/default.yaml.gotmpl

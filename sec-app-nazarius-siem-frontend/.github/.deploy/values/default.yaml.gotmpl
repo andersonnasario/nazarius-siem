@@ -1,0 +1,12 @@
+
+engine: {{ requiredEnv "ENV_VERTICAL" }}
+appName: {{ requiredEnv "ENV_REPO" }}
+clusterName: {{ requiredEnv "ENV_CLUSTER" }}
+
+image:
+  repository: {{ requiredEnv "IMAGE_REPOSITORY" }}
+  tag: {{ requiredEnv "IMAGE_TAG" }}
+
+healthCheckPath: "healthy"
+readyCheckPath: "healthy"
+{{ toYaml .Environment.Values }}

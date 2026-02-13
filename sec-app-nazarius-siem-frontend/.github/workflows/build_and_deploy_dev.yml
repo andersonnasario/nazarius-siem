@@ -1,0 +1,96 @@
+name: Build & Deploy to AWS ECS
+
+on:
+  push:
+    branches:
+      - dev
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: nazarius-siem-poc-frontend-hml
+  ECS_SERVICE: nazarius-siem-poc-frontend-service
+  ECS_CLUSTER: nazarius-siem-poc-cluster-hml
+  ECS_TASK_DEFINITION: nazarius-siem-poc-frontend-task
+  CONTAINER_NAME: nazarius-siem-poc-frontend
+  ENV_VERTICAL: secops
+
+jobs:
+  build-and-deploy:
+    runs-on: fp-all
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Secrets from Vault
+        uses: Superlogica/github-workflows/vault-import@master
+        with:
+          kubernetes-auth: "services-prd"
+          vault-role: "fp-delivery-github-runners-services-prd"
+          secrets-path: |
+            secops/data/AWS/secops/github-actions AWS_ACCESS_KEY_ID | AWS_ACCESS_KEY_ID ;
+            secops/data/AWS/secops/github-actions AWS_SECRET_ACCESS_KEY | AWS_SECRET_ACCESS_KEY ;
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: "us-east-1"
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Export Commit SHA SHORT output
+        id: export-commit-tag
+        shell: bash
+        run: |
+          if [[ ${{ github.ref_type }} == "branch" ]]; then
+            GITHUB_SHA=${{ github.sha  }}
+            echo "TAG=$(echo ${GITHUB_SHA:0:7})" >> $GITHUB_OUTPUT
+          else 
+            if [[ ${{ github.ref_type }} == "tag" ]]; then
+              echo "TAG=$(echo ${{ github.ref }} | awk -F "refs/tags/" '{print $2}')" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: Docker Build and Push
+        id: build-and-push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.export-commit-tag.outputs.tag }}
+          labels: superlogica-ref=${{ steps.export-commit-tag.outputs.tag }}
+
+      - name: Install AWS-CLI v2
+        id: install-aws-cli
+        uses: unfor19/install-aws-cli-action@v1
+        with:
+          version: 2
+          verbose: false
+          arch: amd64
+
+      - name: Get current task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition ${{ env.ECS_TASK_DEFINITION }} \
+            --query taskDefinition > task-definition.json
+
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: ${{ env.CONTAINER_NAME }}
+          image: ${{ fromJSON(steps.build-and-push.outputs.metadata)['image.name'] }}
+
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+          propagate-tags: SERVICE

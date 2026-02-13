@@ -1,0 +1,11 @@
+name: Build, Setup & Deploy PRD
+on:
+  push:
+    branches:
+      - dev
+jobs:
+  deploy:
+    uses: Superlogica/github-workflows/.github/workflows/setup-build-and-deploy.yaml@develop
+    with:
+      aws_account: secops
+      environment: prd

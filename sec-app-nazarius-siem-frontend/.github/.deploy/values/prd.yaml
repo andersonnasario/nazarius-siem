@@ -1,0 +1,37 @@
+
+replicaCount: 1
+
+# Configurações específicas do ambiente PRD
+url: "nazarius-siem-teste.secops.superlogica.com"
+# serviceAccount:
+#   annotations:
+#     eks.amazonaws.com/role-arn: arn:aws:iam::ID_PRD:role/NAME_IAM
+container:
+  port: 80
+
+service:
+  port: 80
+########################################################################################################
+# VARIÁVEIS / CONFIGS
+########################################################################################################
+# Vai inserir abaixo as variáveis de ambiente que sua aplicação tem
+customEnvs:
+  - name: REACT_APP_API_URL
+    value: https://nazarius-siem.secops.superlogica.com/api/v1
+
+# Caso tenha Secrets vamos colocar no vault. Siga os passos na sessão SECRET abaixo.
+
+
+########################################################################################################
+# SECRETS
+########################################################################################################
+# Se sua app tiver variáveis de ambiente que são dados sensíveis como token e senhas elas devem ser adicionadas nesse espaço abaixo.
+# 1 - Solicite acesso ao vault aqui: https://superlogica.atlassian.net/servicedesk/customer/portal/3/group/46/create/663
+# 2 - Insira suas secrets e após inseridas no vault você vai colocar abaixo o nome da Variável de ambiente que ela vai se transformar e a KEY dela no vault,
+# 3 - Depois que fizer o depĺoy automaticamente o kubernetes vai inserir como variável dentro do seu pod.
+
+# secret-env:
+#   secret: NOME-DA-RELEASE-secret
+#   items:
+#     - name: "ENVIRONMENT_K8S"
+#       key: ENVIRONMENT_K8S
