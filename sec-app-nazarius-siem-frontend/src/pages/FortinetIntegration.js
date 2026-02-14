@@ -135,7 +135,7 @@ const FortinetIntegration = () => {
   // Fetch dashboard data
   const fetchDashboard = useCallback(async () => {
     try {
-      const token = localStorage.getItem('access_token');
+      const token = sessionStorage.getItem('access_token') || localStorage.getItem('access_token');
       const response = await fetch(`${API_BASE}/api/v1/fortinet/dashboard`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -151,7 +151,7 @@ const FortinetIntegration = () => {
   // Fetch configurations
   const fetchConfigs = useCallback(async () => {
     try {
-      const token = localStorage.getItem('access_token');
+      const token = sessionStorage.getItem('access_token') || localStorage.getItem('access_token');
       const response = await fetch(`${API_BASE}/api/v1/fortinet/configs`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -167,7 +167,7 @@ const FortinetIntegration = () => {
   // Fetch events
   const fetchEvents = useCallback(async () => {
     try {
-      const token = localStorage.getItem('access_token');
+      const token = sessionStorage.getItem('access_token') || localStorage.getItem('access_token');
       const params = new URLSearchParams();
       if (eventFilters.type) params.append('type', eventFilters.type);
       if (eventFilters.severity) params.append('severity', eventFilters.severity);
@@ -189,7 +189,7 @@ const FortinetIntegration = () => {
   // Fetch alerts
   const fetchAlerts = useCallback(async () => {
     try {
-      const token = localStorage.getItem('access_token');
+      const token = sessionStorage.getItem('access_token') || localStorage.getItem('access_token');
       const response = await fetch(`${API_BASE}/api/v1/fortinet/alerts?status=new&limit=50`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -205,7 +205,7 @@ const FortinetIntegration = () => {
   // Fetch statistics
   const fetchStats = useCallback(async () => {
     try {
-      const token = localStorage.getItem('access_token');
+      const token = sessionStorage.getItem('access_token') || localStorage.getItem('access_token');
       const response = await fetch(`${API_BASE}/api/v1/fortinet/stats`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -252,7 +252,7 @@ const FortinetIntegration = () => {
   // Create configuration
   const handleCreateConfig = async () => {
     try {
-      const token = localStorage.getItem('access_token');
+      const token = sessionStorage.getItem('access_token') || localStorage.getItem('access_token');
       const response = await fetch(`${API_BASE}/api/v1/fortinet/configs`, {
         method: 'POST',
         headers: {
@@ -291,7 +291,7 @@ const FortinetIntegration = () => {
     if (!window.confirm('Tem certeza que deseja excluir esta configuração?')) return;
     
     try {
-      const token = localStorage.getItem('access_token');
+      const token = sessionStorage.getItem('access_token') || localStorage.getItem('access_token');
       const response = await fetch(`${API_BASE}/api/v1/fortinet/configs/${id}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },

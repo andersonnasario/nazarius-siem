@@ -175,7 +175,8 @@ func (s *APIServer) handleListFlowLogs(c *gin.Context) {
 		s.opensearch.Search.WithBody(strings.NewReader(string(queryJSON))),
 	)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleListVPCFlowLogs search: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 	defer res.Body.Close()
@@ -261,7 +262,8 @@ func (s *APIServer) handleListNetworkAnomalies(c *gin.Context) {
 		s.opensearch.Search.WithBody(strings.NewReader(string(queryJSON))),
 	)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleListNetworkAnomalies search: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 	defer res.Body.Close()
@@ -298,7 +300,8 @@ func (s *APIServer) handleGetFlowLogsStats(c *gin.Context) {
 
 	stats, err := s.getFlowLogsStats()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleGetFlowLogsStats: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 

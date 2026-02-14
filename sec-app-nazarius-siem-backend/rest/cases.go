@@ -917,7 +917,8 @@ func (s *APIServer) handleGetCasePolicy(c *gin.Context) {
 func (s *APIServer) handleUpdateCasePolicy(c *gin.Context) {
 	var policy CasePolicy
 	if err := c.ShouldBindJSON(&policy); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleUpdateCasePolicy bind: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 	policy.ID = "default"
@@ -1201,7 +1202,8 @@ func (s *APIServer) handleAddCaseChecklistItem(c *gin.Context) {
 		Text string `json:"text" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleAddCaseChecklistItem bind: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -1254,7 +1256,8 @@ func (s *APIServer) handleUpdateCaseChecklistItem(c *gin.Context) {
 		Text   string `json:"text"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleUpdateCaseChecklistItem bind: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -1389,7 +1392,8 @@ func (s *APIServer) handleAddCasePlaybook(c *gin.Context) {
 		PlaybookID string `json:"playbook_id" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleAddCasePlaybook bind: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -1521,7 +1525,8 @@ func (s *APIServer) handleExecuteCasePlaybook(c *gin.Context) {
 	engine := NewPlaybookEngine(s)
 	execution, err := engine.ExecutePlaybook(playbook, triggerData, username)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] Execute playbook for case: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
@@ -1725,7 +1730,8 @@ func (s *APIServer) handleListCases(c *gin.Context) {
 	// Buscar do banco de dados
 	dbCases, err := s.caseRepo.List(ctx, filters)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list cases: " + err.Error()})
+		log.Printf("[ERROR] Failed to list cases: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
@@ -1795,7 +1801,8 @@ func (s *APIServer) handleCreateCase(c *gin.Context) {
 
 	var caseObj Case
 	if err := c.ShouldBindJSON(&caseObj); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleCreateCase bind: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -1818,13 +1825,15 @@ func (s *APIServer) handleCreateCase(c *gin.Context) {
 	// Converter para formato do DB
 	dbCase, err := convertAPICaseToDB(&caseObj)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleCreateCase convert: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
 	// Salvar no banco de dados
 	if err := s.caseRepo.Create(ctx, dbCase); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create case: " + err.Error()})
+		log.Printf("[ERROR] Failed to create case: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
@@ -1847,7 +1856,8 @@ func (s *APIServer) handleUpdateCase(c *gin.Context) {
 
 	var caseObj Case
 	if err := c.ShouldBindJSON(&caseObj); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleUpdateCase bind: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -1865,13 +1875,15 @@ func (s *APIServer) handleUpdateCase(c *gin.Context) {
 	// Converter para formato do DB
 	dbCase, err := convertAPICaseToDB(&caseObj)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleUpdateCase convert: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
 	// Atualizar no banco de dados
 	if err := s.caseRepo.Update(ctx, dbCase); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update case: " + err.Error()})
+		log.Printf("[ERROR] Failed to update case: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
@@ -1910,7 +1922,8 @@ func (s *APIServer) handleCloseCase(c *gin.Context) {
 
 	// Fechar caso no banco de dados
 	if err := s.caseRepo.Close(ctx, id, req.Resolution, userID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to close case: " + err.Error()})
+		log.Printf("[ERROR] Failed to close case: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
@@ -1936,7 +1949,8 @@ func (s *APIServer) handleDeleteCase(c *gin.Context) {
 
 	// Deletar do banco de dados
 	if err := s.caseRepo.Delete(ctx, id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete case: " + err.Error()})
+		log.Printf("[ERROR] Failed to delete case: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
@@ -2078,7 +2092,8 @@ func (s *APIServer) handleAddComment(c *gin.Context) {
 		Content string `json:"content" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleAddCaseComment bind: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -2231,7 +2246,8 @@ func (s *APIServer) handleGetCaseComments(c *gin.Context) {
 	// Buscar comentários do banco
 	dbComments, err := s.caseRepo.GetComments(ctx, caseID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get comments: " + err.Error()})
+		log.Printf("[ERROR] Failed to get comments: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
@@ -2272,7 +2288,8 @@ func (s *APIServer) handleGetCaseStatistics(c *gin.Context) {
 	// Buscar estatísticas do banco
 	statsMap, err := s.caseRepo.GetStats(ctx)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get statistics: " + err.Error()})
+		log.Printf("[ERROR] Failed to get statistics: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 

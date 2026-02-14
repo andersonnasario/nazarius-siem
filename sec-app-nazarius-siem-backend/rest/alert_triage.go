@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"math"
 	"net/http"
 	"sort"
@@ -572,9 +573,10 @@ func (s *APIServer) handleTriageAlert(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Printf("[ERROR] handleTriageAlert bind JSON: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"error":   err.Error(),
+			"error":   "Invalid request",
 		})
 		return
 	}
@@ -714,9 +716,10 @@ func (s *APIServer) handleUpdateTriageResult(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&updates); err != nil {
+		log.Printf("[ERROR] handleUpdateTriageResult bind JSON: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"error":   err.Error(),
+			"error":   "Invalid request",
 		})
 		return
 	}
@@ -911,9 +914,10 @@ func (s *APIServer) handleListTriageRules(c *gin.Context) {
 func (s *APIServer) handleCreateTriageRule(c *gin.Context) {
 	var rule TriageRule
 	if err := c.ShouldBindJSON(&rule); err != nil {
+		log.Printf("[ERROR] handleCreateTriageRule bind JSON: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"error":   err.Error(),
+			"error":   "Invalid request",
 		})
 		return
 	}
@@ -951,9 +955,10 @@ func (s *APIServer) handleUpdateTriageRule(c *gin.Context) {
 
 	var updates TriageRule
 	if err := c.ShouldBindJSON(&updates); err != nil {
+		log.Printf("[ERROR] handleUpdateTriageRule bind JSON: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"error":   err.Error(),
+			"error":   "Invalid request",
 		})
 		return
 	}
@@ -1126,9 +1131,10 @@ func (s *APIServer) handleUpdateAnalystProfile(c *gin.Context) {
 
 	var updates AnalystProfile
 	if err := c.ShouldBindJSON(&updates); err != nil {
+		log.Printf("[ERROR] handleUpdateAnalystProfile bind JSON: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"error":   err.Error(),
+			"error":   "Invalid request",
 		})
 		return
 	}
@@ -1163,9 +1169,10 @@ func (s *APIServer) handleMarkFalsePositive(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Printf("[ERROR] handleMarkFalsePositive bind JSON: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"error":   err.Error(),
+			"error":   "Invalid request",
 		})
 		return
 	}

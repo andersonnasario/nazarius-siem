@@ -1,9 +1,11 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"sync"
 	"time"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -148,7 +150,8 @@ func (s *APIServer) handleListMDRTenants(c *gin.Context) {
 func (s *APIServer) handleCreateMDRTenant(c *gin.Context) {
 	var tenant MDRTenant
 	if err := c.ShouldBindJSON(&tenant); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+		log.Printf("[ERROR] handleCreateMDRTenant bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Invalid request"})
 		return
 	}
 
@@ -209,7 +212,8 @@ func (s *APIServer) handleUpdateMDRTenant(c *gin.Context) {
 
 	var updates MDRTenant
 	if err := c.ShouldBindJSON(&updates); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+		log.Printf("[ERROR] handleUpdateMDRTenant bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Invalid request"})
 		return
 	}
 

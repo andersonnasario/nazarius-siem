@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -89,13 +90,15 @@ func (s *APIServer) handleListDashboards(c *gin.Context) {
 func (s *APIServer) handleCreateDashboard(c *gin.Context) {
 	var dashboard Dashboard
 	if err := c.ShouldBindJSON(&dashboard); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleCreateDashboard bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
 	// Validar dashboard
 	if err := validateDashboard(&dashboard); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleCreateDashboard validate: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -160,13 +163,15 @@ func (s *APIServer) handleUpdateDashboard(c *gin.Context) {
 
 	var dashboard Dashboard
 	if err := c.ShouldBindJSON(&dashboard); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleUpdateDashboard bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
 	// Validar dashboard
 	if err := validateDashboard(&dashboard); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleUpdateDashboard validate: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 

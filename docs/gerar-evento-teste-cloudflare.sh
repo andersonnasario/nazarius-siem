@@ -16,8 +16,9 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
+# Cloudflare API - NUNCA coloque tokens diretamente no script
 CF_API_URL="https://api.cloudflare.com/client/v4"
-CF_TOKEN="c2CrroNcJiXhACKc98Q6K5fOw8S1m9SdwuTXMKy"
+CF_TOKEN="${CLOUDFLARE_API_TOKEN:?Defina CLOUDFLARE_API_TOKEN com seu token Cloudflare}"
 
 echo -e "${BLUE}╔════════════════════════════════════════════════════════════════╗${NC}"
 echo -e "${BLUE}║  GERADOR DE EVENTOS DE TESTE - CLOUDFLARE WAF                 ║${NC}"

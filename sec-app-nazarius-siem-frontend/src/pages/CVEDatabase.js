@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { safeUrl } from '../utils/security';
 import {
   Box,
   Typography,
@@ -311,7 +312,7 @@ const CVEDetailDialog = ({ open, onClose, cveId }) => {
                         </ListItemIcon>
                         <ListItemText
                           primary={
-                            <Link href={ref.url} target="_blank" rel="noopener noreferrer">
+                            <Link href={safeUrl(ref.url)} target="_blank" rel="noopener noreferrer">
                               {ref.url}
                             </Link>
                           }

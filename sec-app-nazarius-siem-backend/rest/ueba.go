@@ -244,7 +244,8 @@ func (s *APIServer) handleUpdateAnomaly(c *gin.Context) {
 	}
 	
 	if err := c.ShouldBindJSON(&update); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleUpdateAnomaly bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 	

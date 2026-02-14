@@ -107,7 +107,7 @@ func (s *APIServer) handleCreateUser(c *gin.Context) {
 		Username           string   `json:"username" binding:"required"`
 		Email              string   `json:"email" binding:"required,email"`
 		FullName           string   `json:"full_name"`
-		Password           string   `json:"password" binding:"required,min=6"`
+		Password           string   `json:"password" binding:"required,min=8"`
 		RoleID             string   `json:"role_id" binding:"required"`
 		IsActive           bool     `json:"is_active"`
 		AllowedAccountIDs  []string `json:"allowed_account_ids"`
@@ -115,7 +115,13 @@ func (s *APIServer) handleCreateUser(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data"})
+		return
+	}
+
+	// Enforce strong password policy
+	if valid, reason := ValidatePassword(req.Password); !valid {
+		c.JSON(http.StatusBadRequest, gin.H{"error": reason})
 		return
 	}
 
@@ -178,7 +184,7 @@ func (s *APIServer) handleUpdateUser(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data"})
 		return
 	}
 
@@ -323,7 +329,7 @@ func (s *APIServer) handleUpdateMyProfile(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data"})
 		return
 	}
 
@@ -385,7 +391,7 @@ func (s *APIServer) handleChangeMyPassword(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data"})
 		return
 	}
 

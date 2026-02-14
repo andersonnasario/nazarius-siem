@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -201,7 +202,8 @@ type TopHunter struct {
 func (s *APIServer) handleExecuteHuntingQuery(c *gin.Context) {
 	var query HuntingQuery
 	if err := c.ShouldBindJSON(&query); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleExecuteHuntingQuery bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -357,7 +359,8 @@ func (s *APIServer) handleListSavedSearches(c *gin.Context) {
 func (s *APIServer) handleCreateSavedSearch(c *gin.Context) {
 	var search SavedSearch
 	if err := c.ShouldBindJSON(&search); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleCreateSavedSearch bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -462,7 +465,8 @@ func (s *APIServer) handleListCampaigns(c *gin.Context) {
 func (s *APIServer) handleCreateCampaign(c *gin.Context) {
 	var campaign HuntingCampaign
 	if err := c.ShouldBindJSON(&campaign); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleCreateCampaign bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -527,7 +531,8 @@ func (s *APIServer) handleGetTimeline(c *gin.Context) {
 func (s *APIServer) handlePivot(c *gin.Context) {
 	var req PivotRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handlePivot bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -585,7 +590,8 @@ func (s *APIServer) handleGetHuntingStats(c *gin.Context) {
 func (s *APIServer) handleCreateFinding(c *gin.Context) {
 	var finding HuntingFinding
 	if err := c.ShouldBindJSON(&finding); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleCreateFinding bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 

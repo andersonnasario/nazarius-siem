@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -1035,7 +1036,8 @@ func (s *APIServer) handleCloudflareConfig(c *gin.Context) {
 	// POST - Atualizar configuração
 	var newConfig CloudflareConfig
 	if err := c.ShouldBindJSON(&newConfig); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] Cloudflare config bind: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -1082,8 +1084,9 @@ func (s *APIServer) handleCloudflareZones(c *gin.Context) {
 
 	zones, err := cloudflareCollector.listZones()
 	if err != nil {
+		log.Printf("[ERROR] Cloudflare list zones: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
+			"error": "Internal server error",
 		})
 		return
 	}
@@ -1238,14 +1241,16 @@ func (s *APIServer) handleCloudflareEvents(c *gin.Context) {
 
 	res, err := req.Do(context.Background(), s.opensearch)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] Cloudflare events search: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 	defer res.Body.Close()
 
 	var result map[string]interface{}
 	if err := json.NewDecoder(res.Body).Decode(&result); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] Cloudflare events decode: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
@@ -1345,13 +1350,15 @@ func (s *APIServer) getCloudflareStats() map[string]interface{} {
 
 	res, err := req.Do(context.Background(), s.opensearch)
 	if err != nil {
-		return map[string]interface{}{"error": err.Error()}
+		log.Printf("[ERROR] Cloudflare stats search: %v", err)
+		return map[string]interface{}{"error": "Internal server error"}
 	}
 	defer res.Body.Close()
 
 	var result map[string]interface{}
 	if err := json.NewDecoder(res.Body).Decode(&result); err != nil {
-		return map[string]interface{}{"error": err.Error()}
+		log.Printf("[ERROR] Cloudflare stats decode: %v", err)
+		return map[string]interface{}{"error": "Internal server error"}
 	}
 
 	stats := map[string]interface{}{
@@ -1426,7 +1433,8 @@ func (s *APIServer) handleCloudflareTest(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] Cloudflare test bind: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -1453,9 +1461,10 @@ func (s *APIServer) handleCloudflareTest(c *gin.Context) {
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(httpReq)
 	if err != nil {
+		log.Printf("[ERROR] Cloudflare test connection: %v", err)
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
-			"error":   err.Error(),
+			"error":   "Connection error",
 		})
 		return
 	}
@@ -1515,7 +1524,8 @@ func (s *APIServer) handleCloudflareDiagnostic(c *gin.Context) {
 		"success":  err == nil,
 	}
 	if err != nil {
-		zonesTest["error"] = err.Error()
+		log.Printf("[ERROR] Cloudflare diagnostic list zones: %v", err)
+		zonesTest["error"] = "Service unavailable"
 	} else {
 		zonesTest["zones_found"] = len(zones)
 		zonesTest["zones"] = zones
@@ -1574,8 +1584,9 @@ func (s *APIServer) handleCloudflareDiagnostic(c *gin.Context) {
 	}
 
 	if err != nil {
+		log.Printf("[ERROR] Cloudflare diagnostic Security Events REST: %v", err)
 		restTest["success"] = false
-		restTest["error"] = err.Error()
+		restTest["error"] = "Connection error"
 	} else {
 		body, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
@@ -1620,8 +1631,9 @@ func (s *APIServer) handleCloudflareDiagnostic(c *gin.Context) {
 	}
 
 	if err != nil {
+		log.Printf("[ERROR] Cloudflare diagnostic Firewall Events REST: %v", err)
 		legacyTest["success"] = false
-		legacyTest["error"] = err.Error()
+		legacyTest["error"] = "Connection error"
 	} else {
 		body2, _ := io.ReadAll(resp2.Body)
 		resp2.Body.Close()
@@ -1663,8 +1675,9 @@ func (s *APIServer) handleCloudflareDiagnostic(c *gin.Context) {
 	}
 
 	if err != nil {
+		log.Printf("[ERROR] Cloudflare diagnostic GraphQL: %v", err)
 		graphqlTest["success"] = false
-		graphqlTest["error"] = err.Error()
+		graphqlTest["error"] = "Connection error"
 	} else {
 		body3, _ := io.ReadAll(resp3.Body)
 		resp3.Body.Close()

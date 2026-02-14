@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -140,13 +141,13 @@ type Condition struct {
 
 // EscalationPolicy defines escalation rules
 type EscalationPolicy struct {
-	ID          string             `json:"id"`
-	Name        string             `json:"name"`
-	Description string             `json:"description"`
-	Levels      []EscalationLevel  `json:"levels"`
-	RepeatCount int                `json:"repeat_count"`
-	CreatedAt   time.Time          `json:"created_at"`
-	UpdatedAt   time.Time          `json:"updated_at"`
+	ID          string            `json:"id"`
+	Name        string            `json:"name"`
+	Description string            `json:"description"`
+	Levels      []EscalationLevel `json:"levels"`
+	RepeatCount int               `json:"repeat_count"`
+	CreatedAt   time.Time         `json:"created_at"`
+	UpdatedAt   time.Time         `json:"updated_at"`
 }
 
 // EscalationLevel represents a step in escalation
@@ -202,15 +203,15 @@ type Link struct {
 
 // AlertStatistics provides metrics
 type AlertStatistics struct {
-	TotalAlerts       int                       `json:"total_alerts"`
-	AlertsBySeverity  map[AlertSeverity]int     `json:"alerts_by_severity"`
-	AlertsByStatus    map[AlertStatus]int       `json:"alerts_by_status"`
-	AlertsByChannel   map[AlertChannelType]int  `json:"alerts_by_channel"`
-	AvgResponseTime   int                       `json:"avg_response_time_minutes"`
-	AvgResolutionTime int                       `json:"avg_resolution_time_minutes"`
-	SuccessRate       float64                   `json:"success_rate"`
-	TopRules          []RuleStatistic           `json:"top_rules"`
-	AlertTrend        []AlertTrendPoint         `json:"alert_trend"`
+	TotalAlerts       int                      `json:"total_alerts"`
+	AlertsBySeverity  map[AlertSeverity]int    `json:"alerts_by_severity"`
+	AlertsByStatus    map[AlertStatus]int      `json:"alerts_by_status"`
+	AlertsByChannel   map[AlertChannelType]int `json:"alerts_by_channel"`
+	AvgResponseTime   int                      `json:"avg_response_time_minutes"`
+	AvgResolutionTime int                      `json:"avg_resolution_time_minutes"`
+	SuccessRate       float64                  `json:"success_rate"`
+	TopRules          []RuleStatistic          `json:"top_rules"`
+	AlertTrend        []AlertTrendPoint        `json:"alert_trend"`
 }
 
 // RuleStatistic for top triggered rules
@@ -228,11 +229,11 @@ type AlertTrendPoint struct {
 
 // Global state
 var (
-	alertChannels        []AlertChannel
-	alertRules           []AlertRule
-	escalationPolicies   []EscalationPolicy
-	cspmAlerts           []CSPMAlert
-	alertsMutex          sync.RWMutex
+	alertChannels      []AlertChannel
+	alertRules         []AlertRule
+	escalationPolicies []EscalationPolicy
+	cspmAlerts         []CSPMAlert
+	alertsMutex        sync.RWMutex
 )
 
 // Initialize alert system
@@ -311,14 +312,14 @@ func initCSPMAlerts() {
 
 	alertRules = []AlertRule{
 		{
-			ID:           "rule-001",
-			Name:         "Critical Security Findings",
-			Description:  "Alert on all critical security findings immediately",
-			Enabled:      true,
-			Severities:   []AlertSeverity{SeverityCritical},
-			FindingTypes: []string{"S3_PUBLIC_ACCESS", "ROOT_ACCOUNT_ACCESS_KEY", "SECURITY_GROUP_OPEN"},
+			ID:            "rule-001",
+			Name:          "Critical Security Findings",
+			Description:   "Alert on all critical security findings immediately",
+			Enabled:       true,
+			Severities:    []AlertSeverity{SeverityCritical},
+			FindingTypes:  []string{"S3_PUBLIC_ACCESS", "ROOT_ACCOUNT_ACCESS_KEY", "SECURITY_GROUP_OPEN"},
 			ResourceTypes: []string{"AWS::S3::Bucket", "AWS::IAM::User", "AWS::EC2::SecurityGroup"},
-			Channels:     []string{"channel-001", "channel-002", "channel-003"},
+			Channels:      []string{"channel-001", "channel-002", "channel-003"},
 			Throttle: ThrottleConfig{
 				Enabled:       true,
 				MaxPerHour:    10,
@@ -337,14 +338,14 @@ func initCSPMAlerts() {
 			TriggerCount: 45,
 		},
 		{
-			ID:           "rule-002",
-			Name:         "High Severity Findings",
-			Description:  "Alert on high severity findings during business hours",
-			Enabled:      true,
-			Severities:   []AlertSeverity{SeverityHigh},
-			FindingTypes: []string{"UNENCRYPTED_EBS", "UNENCRYPTED_RDS", "IAM_USER_NO_MFA"},
+			ID:            "rule-002",
+			Name:          "High Severity Findings",
+			Description:   "Alert on high severity findings during business hours",
+			Enabled:       true,
+			Severities:    []AlertSeverity{SeverityHigh},
+			FindingTypes:  []string{"UNENCRYPTED_EBS", "UNENCRYPTED_RDS", "IAM_USER_NO_MFA"},
 			ResourceTypes: []string{"AWS::EC2::Volume", "AWS::RDS::DBInstance", "AWS::IAM::User"},
-			Channels:     []string{"channel-001", "channel-003"},
+			Channels:      []string{"channel-001", "channel-003"},
 			Throttle: ThrottleConfig{
 				Enabled:       true,
 				MaxPerHour:    20,
@@ -363,17 +364,17 @@ func initCSPMAlerts() {
 			TriggerCount: 123,
 		},
 		{
-			ID:           "rule-003",
-			Name:         "Compliance Violations",
-			Description:  "Alert on PCI-DSS compliance violations",
-			Enabled:      true,
-			Severities:   []AlertSeverity{SeverityCritical, SeverityHigh},
-			FindingTypes: []string{"CLOUDTRAIL_DISABLED", "S3_PUBLIC_ACCESS", "UNENCRYPTED_RDS"},
-			ResourceTypes: []string{"AWS::CloudTrail::Trail", "AWS::S3::Bucket", "AWS::RDS::DBInstance"},
-			Channels:     []string{"channel-001", "channel-002", "channel-003"},
+			ID:               "rule-003",
+			Name:             "Compliance Violations",
+			Description:      "Alert on PCI-DSS compliance violations",
+			Enabled:          true,
+			Severities:       []AlertSeverity{SeverityCritical, SeverityHigh},
+			FindingTypes:     []string{"CLOUDTRAIL_DISABLED", "S3_PUBLIC_ACCESS", "UNENCRYPTED_RDS"},
+			ResourceTypes:    []string{"AWS::CloudTrail::Trail", "AWS::S3::Bucket", "AWS::RDS::DBInstance"},
+			Channels:         []string{"channel-001", "channel-002", "channel-003"},
 			EscalationPolicy: "policy-001",
 			Throttle: ThrottleConfig{
-				Enabled:       false,
+				Enabled: false,
 			},
 			Schedule: ScheduleConfig{
 				Enabled: false,
@@ -422,23 +423,23 @@ func initCSPMAlerts() {
 
 	cspmAlerts = []CSPMAlert{
 		{
-			ID:           "alert-001",
-			RuleID:       "rule-001",
-			RuleName:     "Critical Security Findings",
-			FindingID:    "finding-001",
-			FindingType:  "S3_PUBLIC_ACCESS",
-			ResourceID:   "arn:aws:s3:::my-public-bucket",
-			ResourceType: "AWS::S3::Bucket",
-			Severity:     SeverityCritical,
-			Title:        "S3 Bucket Publicly Accessible",
-			Description:  "S3 bucket 'my-public-bucket' is publicly accessible, violating security policy",
-			Status:       AlertAcknowled,
-			Channels:     []string{"channel-001", "channel-002"},
-			SentAt:       &sentAt,
-			AcknowledgedAt: &acknowledgedAt,
-			AcknowledgedBy: "admin@company.com",
+			ID:              "alert-001",
+			RuleID:          "rule-001",
+			RuleName:        "Critical Security Findings",
+			FindingID:       "finding-001",
+			FindingType:     "S3_PUBLIC_ACCESS",
+			ResourceID:      "arn:aws:s3:::my-public-bucket",
+			ResourceType:    "AWS::S3::Bucket",
+			Severity:        SeverityCritical,
+			Title:           "S3 Bucket Publicly Accessible",
+			Description:     "S3 bucket 'my-public-bucket' is publicly accessible, violating security policy",
+			Status:          AlertAcknowled,
+			Channels:        []string{"channel-001", "channel-002"},
+			SentAt:          &sentAt,
+			AcknowledgedAt:  &acknowledgedAt,
+			AcknowledgedBy:  "admin@company.com",
 			EscalationLevel: 1,
-			RetryCount:   0,
+			RetryCount:      0,
 			Metadata: AlertMetadata{
 				Account: "123456789012",
 				Region:  "us-east-1",
@@ -456,21 +457,21 @@ func initCSPMAlerts() {
 			UpdatedAt: acknowledgedAt,
 		},
 		{
-			ID:           "alert-002",
-			RuleID:       "rule-002",
-			RuleName:     "High Severity Findings",
-			FindingID:    "finding-002",
-			FindingType:  "UNENCRYPTED_EBS",
-			ResourceID:   "vol-1234567890abcdef0",
-			ResourceType: "AWS::EC2::Volume",
-			Severity:     SeverityHigh,
-			Title:        "Unencrypted EBS Volume",
-			Description:  "EBS volume 'vol-1234567890abcdef0' is not encrypted",
-			Status:       AlertSent,
-			Channels:     []string{"channel-001", "channel-003"},
-			SentAt:       &sentAt,
+			ID:              "alert-002",
+			RuleID:          "rule-002",
+			RuleName:        "High Severity Findings",
+			FindingID:       "finding-002",
+			FindingType:     "UNENCRYPTED_EBS",
+			ResourceID:      "vol-1234567890abcdef0",
+			ResourceType:    "AWS::EC2::Volume",
+			Severity:        SeverityHigh,
+			Title:           "Unencrypted EBS Volume",
+			Description:     "EBS volume 'vol-1234567890abcdef0' is not encrypted",
+			Status:          AlertSent,
+			Channels:        []string{"channel-001", "channel-003"},
+			SentAt:          &sentAt,
 			EscalationLevel: 1,
-			RetryCount:   0,
+			RetryCount:      0,
 			Metadata: AlertMetadata{
 				Account: "123456789012",
 				Region:  "us-east-1",
@@ -516,7 +517,8 @@ func (s *APIServer) handleGetAlertChannel(c *gin.Context) {
 func (s *APIServer) handleCreateAlertChannel(c *gin.Context) {
 	var channel AlertChannel
 	if err := c.ShouldBindJSON(&channel); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleCreateAlertChannel bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -537,7 +539,8 @@ func (s *APIServer) handleUpdateAlertChannel(c *gin.Context) {
 
 	var updates AlertChannel
 	if err := c.ShouldBindJSON(&updates); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] Invalid alert channel update request: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -632,7 +635,8 @@ func (s *APIServer) handleGetAlertRule(c *gin.Context) {
 func (s *APIServer) handleCreateAlertRule(c *gin.Context) {
 	var rule AlertRule
 	if err := c.ShouldBindJSON(&rule); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleCreateAlertRule bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -653,7 +657,8 @@ func (s *APIServer) handleUpdateAlertRule(c *gin.Context) {
 
 	var updates AlertRule
 	if err := c.ShouldBindJSON(&updates); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleUpdateAlertRule bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -750,7 +755,8 @@ func (s *APIServer) handleAcknowledgeAlert(c *gin.Context) {
 		Comment        string `json:"comment"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] Invalid acknowledge alert request: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -780,7 +786,8 @@ func (s *APIServer) handleResolveAlert(c *gin.Context) {
 		Comment    string `json:"comment"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleResolveAlert bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -807,13 +814,13 @@ func (s *APIServer) handleGetCSPMAlertStatistics(c *gin.Context) {
 	defer alertsMutex.RUnlock()
 
 	stats := AlertStatistics{
-		TotalAlerts:      len(cspmAlerts),
-		AlertsBySeverity: make(map[AlertSeverity]int),
-		AlertsByStatus:   make(map[AlertStatus]int),
-		AlertsByChannel:  make(map[AlertChannelType]int),
-		AvgResponseTime:  25,
+		TotalAlerts:       len(cspmAlerts),
+		AlertsBySeverity:  make(map[AlertSeverity]int),
+		AlertsByStatus:    make(map[AlertStatus]int),
+		AlertsByChannel:   make(map[AlertChannelType]int),
+		AvgResponseTime:   25,
 		AvgResolutionTime: 120,
-		SuccessRate:      98.5,
+		SuccessRate:       98.5,
 	}
 
 	// Count by severity and status
@@ -906,4 +913,3 @@ func verifyWebhookSignature(payload []byte, signature string, secret string) boo
 func marshalAlert(alert CSPMAlert) ([]byte, error) {
 	return json.Marshal(alert)
 }
-

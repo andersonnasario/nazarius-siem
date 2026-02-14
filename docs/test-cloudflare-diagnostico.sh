@@ -16,13 +16,13 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Configuração
-API_URL="https://nazarius-siem.secops.superlogica.com/api/v1"
-TOKEN="dev-token"  # Substitua pelo token real se necessário
+# Configuração - defina estas variáveis de ambiente antes de executar
+API_URL="${SIEM_API_URL:-https://localhost:8080/api/v1}"
+TOKEN="${SIEM_TOKEN:?Defina SIEM_TOKEN com um token de autenticação válido}"
 
-# Cloudflare API
+# Cloudflare API - NUNCA coloque tokens diretamente no script
 CF_API_URL="https://api.cloudflare.com/client/v4"
-CF_TOKEN="c2CrroNcJiXhACKc98Q6K5fOw8S1m9SdwuTXMKy"
+CF_TOKEN="${CLOUDFLARE_API_TOKEN:?Defina CLOUDFLARE_API_TOKEN com seu token Cloudflare}"
 
 echo -e "${BLUE}╔════════════════════════════════════════════════════════════════╗${NC}"
 echo -e "${BLUE}║  DIAGNÓSTICO COMPLETO - CLOUDFLARE WAF INTEGRATION           ║${NC}"

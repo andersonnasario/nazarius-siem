@@ -15,10 +15,10 @@ import (
 
 // HealthStatus represents the overall health status
 type HealthStatus struct {
-	Status     string                 `json:"status"`
-	Timestamp  string                 `json:"timestamp"`
-	Version    string                 `json:"version"`
-	Uptime     string                 `json:"uptime"`
+	Status     string                     `json:"status"`
+	Timestamp  string                     `json:"timestamp"`
+	Version    string                     `json:"version"`
+	Uptime     string                     `json:"uptime"`
 	Components map[string]ComponentHealth `json:"components"`
 }
 
@@ -39,22 +39,22 @@ var (
 // handleHealthCheck returns the overall health status
 func (s *APIServer) handleHealthCheck(c *gin.Context) {
 	ctx := context.Background()
-	
+
 	// Check all components
 	components := make(map[string]ComponentHealth)
-	
+
 	// Check Elasticsearch
 	esHealth := s.checkElasticsearch(ctx)
 	components["elasticsearch"] = esHealth
-	
+
 	// Check Redis
 	redisHealth := s.checkRedis(ctx)
 	components["redis"] = redisHealth
-	
+
 	// Check PostgreSQL
 	dbHealth := s.checkDatabase(ctx)
 	components["database"] = dbHealth
-	
+
 	// Check API
 	apiHealth := ComponentHealth{
 		Status:    "healthy",
@@ -62,7 +62,7 @@ func (s *APIServer) handleHealthCheck(c *gin.Context) {
 		LastCheck: time.Now().UTC().Format(time.RFC3339),
 	}
 	components["api"] = apiHealth
-	
+
 	// Determine overall status
 	overallStatus := "healthy"
 	for _, component := range components {
@@ -71,10 +71,10 @@ func (s *APIServer) handleHealthCheck(c *gin.Context) {
 			break
 		}
 	}
-	
+
 	// Calculate uptime
 	uptime := time.Since(serverStartTime)
-	
+
 	health := HealthStatus{
 		Status:     overallStatus,
 		Timestamp:  time.Now().UTC().Format(time.RFC3339),
@@ -82,26 +82,26 @@ func (s *APIServer) handleHealthCheck(c *gin.Context) {
 		Uptime:     formatDuration(uptime),
 		Components: components,
 	}
-	
+
 	// Update Prometheus metrics
 	RecordSystemHealth("api", true)
 	RecordSystemHealth("elasticsearch", esHealth.Status == "healthy")
 	RecordSystemHealth("redis", redisHealth.Status == "healthy")
 	RecordSystemHealth("database", dbHealth.Status == "healthy")
-	
+
 	// Return appropriate status code
 	statusCode := http.StatusOK
 	if overallStatus == "degraded" {
 		statusCode = http.StatusServiceUnavailable
 	}
-	
+
 	c.JSON(statusCode, health)
 }
 
 // handleLivenessProbe returns if the service is alive (for K8s)
 func (s *APIServer) handleLivenessProbe(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
-		"status": "alive",
+		"status":    "alive",
 		"timestamp": time.Now().UTC().Format(time.RFC3339),
 	})
 }
@@ -109,22 +109,22 @@ func (s *APIServer) handleLivenessProbe(c *gin.Context) {
 // handleReadinessProbe returns if the service is ready to accept traffic (for K8s)
 func (s *APIServer) handleReadinessProbe(c *gin.Context) {
 	ctx := context.Background()
-	
+
 	// Check critical dependencies
 	esHealthy := s.isElasticsearchHealthy(ctx)
 	redisHealthy := s.isRedisHealthy(ctx)
-	
+
 	if esHealthy && redisHealthy {
 		c.JSON(http.StatusOK, gin.H{
-			"status": "ready",
+			"status":    "ready",
 			"timestamp": time.Now().UTC().Format(time.RFC3339),
 		})
 	} else {
 		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"status": "not_ready",
-			"timestamp": time.Now().UTC().Format(time.RFC3339),
+			"status":        "not_ready",
+			"timestamp":     time.Now().UTC().Format(time.RFC3339),
 			"elasticsearch": esHealthy,
-			"redis": redisHealthy,
+			"redis":         redisHealthy,
 		})
 	}
 }
@@ -134,38 +134,38 @@ func (s *APIServer) handleStartupProbe(c *gin.Context) {
 	// Check if server has been running for at least 5 seconds
 	if time.Since(serverStartTime) < 5*time.Second {
 		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"status": "starting",
+			"status":    "starting",
 			"timestamp": time.Now().UTC().Format(time.RFC3339),
 		})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, gin.H{
-		"status": "started",
+		"status":    "started",
 		"timestamp": time.Now().UTC().Format(time.RFC3339),
-		"uptime": formatDuration(time.Since(serverStartTime)),
+		"uptime":    formatDuration(time.Since(serverStartTime)),
 	})
 }
 
 // checkElasticsearch checks Elasticsearch health
 func (s *APIServer) checkElasticsearch(ctx context.Context) ComponentHealth {
 	start := time.Now()
-	
+
 	// Ping Elasticsearch
 	res, err := s.opensearch.Ping()
 	latency := time.Since(start)
-	
+
 	if err != nil {
 		RecordElasticsearchConnection(false)
 		return ComponentHealth{
 			Status:    "unhealthy",
-			Message:   "Failed to connect: " + err.Error(),
+			Message:   "Failed to connect to OpenSearch",
 			Latency:   formatDuration(latency),
 			LastCheck: time.Now().UTC().Format(time.RFC3339),
 		}
 	}
 	defer res.Body.Close()
-	
+
 	if res.IsError() {
 		RecordElasticsearchConnection(false)
 		return ComponentHealth{
@@ -175,7 +175,7 @@ func (s *APIServer) checkElasticsearch(ctx context.Context) ComponentHealth {
 			LastCheck: time.Now().UTC().Format(time.RFC3339),
 		}
 	}
-	
+
 	RecordElasticsearchConnection(true)
 	return ComponentHealth{
 		Status:    "healthy",
@@ -188,21 +188,21 @@ func (s *APIServer) checkElasticsearch(ctx context.Context) ComponentHealth {
 // checkRedis checks Redis health
 func (s *APIServer) checkRedis(ctx context.Context) ComponentHealth {
 	start := time.Now()
-	
+
 	// Ping Redis
 	err := s.redis.Ping(ctx).Err()
 	latency := time.Since(start)
-	
+
 	if err != nil {
 		RecordRedisConnection(false)
 		return ComponentHealth{
 			Status:    "unhealthy",
-			Message:   "Failed to connect: " + err.Error(),
+			Message:   "Failed to connect to Redis",
 			Latency:   formatDuration(latency),
 			LastCheck: time.Now().UTC().Format(time.RFC3339),
 		}
 	}
-	
+
 	RecordRedisConnection(true)
 	return ComponentHealth{
 		Status:    "healthy",
@@ -231,7 +231,7 @@ func (s *APIServer) isRedisHealthy(ctx context.Context) bool {
 // checkDatabase checks PostgreSQL health
 func (s *APIServer) checkDatabase(ctx context.Context) ComponentHealth {
 	start := time.Now()
-	
+
 	// Check if database is connected
 	if database.DB == nil {
 		return ComponentHealth{
@@ -241,20 +241,20 @@ func (s *APIServer) checkDatabase(ctx context.Context) ComponentHealth {
 			LastCheck: time.Now().UTC().Format(time.RFC3339),
 		}
 	}
-	
+
 	// Ping database
 	err := database.HealthCheck()
 	latency := time.Since(start)
-	
+
 	if err != nil {
 		return ComponentHealth{
 			Status:    "unhealthy",
-			Message:   "Failed to ping: " + err.Error(),
+			Message:   "Failed to ping database",
 			Latency:   formatDuration(latency),
 			LastCheck: time.Now().UTC().Format(time.RFC3339),
 		}
 	}
-	
+
 	return ComponentHealth{
 		Status:    "healthy",
 		Message:   "Connected",
@@ -285,7 +285,7 @@ func formatDuration(d time.Duration) string {
 	days := int(d.Hours() / 24)
 	hours := int(d.Hours()) % 24
 	minutes := int(d.Minutes()) % 60
-	
+
 	if days > 0 {
 		return string(rune(days)) + "d " + string(rune(hours)) + "h " + string(rune(minutes)) + "m"
 	}
@@ -295,11 +295,11 @@ func formatDuration(d time.Duration) string {
 // handleGetMetrics returns current system metrics
 func (s *APIServer) handleGetMetrics(c *gin.Context) {
 	ctx := context.Background()
-	
+
 	// Get component health
 	esHealth := s.checkElasticsearch(ctx)
 	redisHealth := s.checkRedis(ctx)
-	
+
 	// Get real data if available
 	totalEvents := int64(0)
 	alertsPerMinute := 8.2
@@ -317,7 +317,7 @@ func (s *APIServer) handleGetMetrics(c *gin.Context) {
 				"match_all": map[string]interface{}{},
 			},
 		}
-		
+
 		eventAccessFilters := buildEventAccessFilter(scope)
 		if len(eventAccessFilters) > 0 {
 			eventQuery["query"] = map[string]interface{}{
@@ -326,7 +326,7 @@ func (s *APIServer) handleGetMetrics(c *gin.Context) {
 				},
 			}
 		}
-		
+
 		eventQueryJSON, _ := json.Marshal(eventQuery)
 		res, err := s.opensearch.Count(
 			s.opensearch.Count.WithIndex("siem-events"),
@@ -348,7 +348,7 @@ func (s *APIServer) handleGetMetrics(c *gin.Context) {
 				"match_all": map[string]interface{}{},
 			},
 		}
-		
+
 		alertAccessFilters := buildAlertAccessFilter(scope)
 		if len(alertAccessFilters) > 0 {
 			alertQuery["query"] = map[string]interface{}{
@@ -357,7 +357,7 @@ func (s *APIServer) handleGetMetrics(c *gin.Context) {
 				},
 			}
 		}
-		
+
 		alertQueryJSON, _ := json.Marshal(alertQuery)
 		alertRes, err := s.opensearch.Count(
 			s.opensearch.Count.WithIndex("siem-alerts"),
@@ -390,28 +390,28 @@ func (s *APIServer) handleGetMetrics(c *gin.Context) {
 		"timestamp": time.Now().UTC().Format(time.RFC3339),
 		"uptime":    formatDuration(time.Since(serverStartTime)),
 		"version":   appVersion,
-		
+
 		// Component Health
 		"health": gin.H{
 			"elasticsearch": esHealth.Status == "healthy",
 			"redis":         redisHealth.Status == "healthy",
 			"api":           true,
 		},
-		
+
 		// Business Metrics (real + estimated)
 		"business": gin.H{
-			"events_per_second":      float64(totalEvents) / 3600.0, // Per hour to per second
-			"alerts_per_minute":      alertsPerMinute,
-			"cases_open":             42,
-			"playbooks_executed":     156,
-			"threats_detected":       threatsDetected,
-			"active_users":           activeUsers,
-			"ml_anomalies_detected":  mlAnomaliesDetected,
-			"ml_accuracy":            94.7,
-			"auto_correlations":      autoCorrelations,
-			"total_events":           totalEvents,
+			"events_per_second":     float64(totalEvents) / 3600.0, // Per hour to per second
+			"alerts_per_minute":     alertsPerMinute,
+			"cases_open":            42,
+			"playbooks_executed":    156,
+			"threats_detected":      threatsDetected,
+			"active_users":          activeUsers,
+			"ml_anomalies_detected": mlAnomaliesDetected,
+			"ml_accuracy":           94.7,
+			"auto_correlations":     autoCorrelations,
+			"total_events":          totalEvents,
 		},
-		
+
 		// Performance Metrics
 		"performance": gin.H{
 			"avg_response_time_ms": 45.2,
@@ -420,7 +420,7 @@ func (s *APIServer) handleGetMetrics(c *gin.Context) {
 			"requests_per_second":  850.3,
 			"error_rate":           0.05,
 		},
-		
+
 		// Resource Metrics
 		"resources": gin.H{
 			"cpu_usage_percent":     35.2,
@@ -429,16 +429,15 @@ func (s *APIServer) handleGetMetrics(c *gin.Context) {
 			"network_usage_percent": 25.0,
 			"goroutines":            runtime.NumGoroutine(),
 		},
-		
+
 		// Security Metrics
 		"security": gin.H{
-			"rate_limit_hits":       12,
-			"brute_force_attempts":  3,
-			"blocked_ips":           5,
-			"failed_auth_attempts":  8,
+			"rate_limit_hits":      12,
+			"brute_force_attempts": 3,
+			"blocked_ips":          5,
+			"failed_auth_attempts": 8,
 		},
 	}
-	
+
 	c.JSON(http.StatusOK, metrics)
 }
-

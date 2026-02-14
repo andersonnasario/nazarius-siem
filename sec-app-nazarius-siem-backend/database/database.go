@@ -23,13 +23,19 @@ type Config struct {
 	SSLMode  string
 }
 
-// LoadConfigFromEnv loads database configuration from environment variables
+// LoadConfigFromEnv loads database configuration from environment variables.
+// DB_PASSWORD is mandatory and must be set via environment variable.
 func LoadConfigFromEnv() *Config {
+	dbPassword := os.Getenv("DB_PASSWORD")
+	if dbPassword == "" {
+		log.Println("⚠️  DB_PASSWORD not set. Database connection will likely fail.")
+	}
+
 	return &Config{
 		Host:     getEnv("DB_HOST", "localhost"),
 		Port:     getEnv("DB_PORT", "5432"),
 		User:     getEnv("DB_USER", "siem_user"),
-		Password: getEnv("DB_PASSWORD", "siem_password_change_in_production"),
+		Password: dbPassword,
 		DBName:   getEnv("DB_NAME", "siem"),
 		SSLMode:  getEnv("DB_SSLMODE", "disable"),
 	}
@@ -81,10 +87,10 @@ func HealthCheck() error {
 	if DB == nil {
 		return fmt.Errorf("database connection is nil")
 	}
-	
+
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	
+
 	return DB.PingContext(ctx)
 }
 
@@ -96,4 +102,3 @@ func getEnv(key, defaultValue string) string {
 	}
 	return value
 }
-

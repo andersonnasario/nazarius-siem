@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"runtime"
@@ -20,15 +21,15 @@ import (
 type LogEntry struct {
 	ID        string                 `json:"id"`
 	Timestamp time.Time              `json:"timestamp"`
-	Level     string                 `json:"level"`     // INFO, WARN, ERROR, DEBUG
-	Source    string                 `json:"source"`    // Component that generated the log
+	Level     string                 `json:"level"`  // INFO, WARN, ERROR, DEBUG
+	Source    string                 `json:"source"` // Component that generated the log
 	Message   string                 `json:"message"`
 	Details   map[string]interface{} `json:"details,omitempty"`
 }
 
 // SystemStatus represents the current system status
 type SystemStatus struct {
-	Status      string                 `json:"status"`       // healthy, degraded, unhealthy
+	Status      string                 `json:"status"` // healthy, degraded, unhealthy
 	Uptime      string                 `json:"uptime"`
 	StartedAt   time.Time              `json:"started_at"`
 	Version     string                 `json:"version"`
@@ -195,7 +196,6 @@ func (s *APIServer) handleGetSystemStatus(c *gin.Context) {
 	components["database"] = map[string]interface{}{
 		"status":  dbStatus,
 		"message": dbMessage,
-		"host":    getEnvOrDefault("DB_HOST", "unknown"),
 	}
 
 	// Redis status
@@ -208,7 +208,6 @@ func (s *APIServer) handleGetSystemStatus(c *gin.Context) {
 	components["redis"] = map[string]interface{}{
 		"status":  redisStatus,
 		"message": redisMessage,
-		"host":    getEnvOrDefault("REDIS_HOST", "unknown"),
 		"tls":     getEnvOrDefault("REDIS_USE_TLS", "false"),
 	}
 
@@ -222,7 +221,6 @@ func (s *APIServer) handleGetSystemStatus(c *gin.Context) {
 	components["opensearch"] = map[string]interface{}{
 		"status":  opensearchStatus,
 		"message": opensearchMessage,
-		"url":     getEnvOrDefault("ELASTICSEARCH_URL", "unknown"),
 		"tls":     getEnvOrDefault("ELASTICSEARCH_USE_TLS", "false"),
 	}
 
@@ -331,7 +329,8 @@ func (s *APIServer) handleAddSystemLog(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] add system log bind: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 

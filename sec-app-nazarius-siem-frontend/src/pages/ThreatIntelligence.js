@@ -130,12 +130,7 @@ const ThreatIntelligence = () => {
       const source = iocsRes.data?.dataSource || 'unknown';
       setDataSource(source);
       
-      // Log data source for debugging
-      console.log('TI Data Sources:', {
-        stats: statsRes.data?.dataSource || 'direct',
-        iocs: iocsRes.data?.dataSource || 'direct',
-        feeds: feedsRes.data?.dataSource || 'direct'
-      });
+      // Data source identified from response
     } catch (err) {
       console.error('Error loading threat intelligence data:', err);
       setError('Erro ao carregar dados de Threat Intelligence');

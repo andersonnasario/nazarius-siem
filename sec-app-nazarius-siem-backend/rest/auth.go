@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"log"
 	"net/http"
 	"os"
 	"time"
@@ -20,13 +21,15 @@ const (
 	RefreshTokenDuration = 7 * 24 * time.Hour // 7 days refresh token
 )
 
-// getJWTSecretKey returns the JWT secret key from environment variable
-// IMPORTANTE: Em produção, configure JWT_SECRET com um valor seguro de pelo menos 32 caracteres
+// getJWTSecretKey returns the JWT secret key from environment variable.
+// JWT_SECRET must be set and at least 32 characters long.
 func getJWTSecretKey() string {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
-		// WARNING: This is only for development! Set JWT_SECRET in production.
-		return "your-secret-key-change-in-production-dev-only"
+		log.Fatal("FATAL: JWT_SECRET environment variable is not set. Set a secure secret of at least 32 characters.")
+	}
+	if len(secret) < 32 {
+		log.Fatal("FATAL: JWT_SECRET must be at least 32 characters long for security.")
 	}
 	return secret
 }
@@ -48,10 +51,10 @@ type LoginRequest struct {
 
 // LoginResponse represents a login response
 type LoginResponse struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	TokenType    string `json:"token_type"`
-	ExpiresIn    int    `json:"expires_in"` // seconds
+	AccessToken  string    `json:"access_token"`
+	RefreshToken string    `json:"refresh_token"`
+	TokenType    string    `json:"token_type"`
+	ExpiresIn    int       `json:"expires_in"` // seconds
 	User         *UserInfo `json:"user"`
 }
 
@@ -136,7 +139,7 @@ func parseAccessToken(tokenString string) (*Claims, error) {
 func (s *APIServer) handleLogin(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -148,21 +151,30 @@ func (s *APIServer) handleLogin(c *gin.Context) {
 		"username": req.Username,
 		"ip":       c.ClientIP(),
 	})
-	
+
 	user, err := s.authRepo.VerifyPassword(ctx, req.Username, req.Password)
 	if err != nil {
-		// Log failed attempt for audit
-		s.logger.Printf("Login failed for user %s: %v", req.Username, err)
-		AddSystemLog("WARN", "auth", "❌ Login failed - Invalid credentials", map[string]interface{}{
+		// Record failed attempt for brute force protection
+		if s.bruteForceProtection != nil {
+			s.bruteForceProtection.RecordFailedAttempt(c.ClientIP())
+		}
+		// Log failed attempt for audit (do NOT include err.Error() to prevent user enumeration)
+		s.logger.Printf("Login failed for user: %s from IP: %s", req.Username, c.ClientIP())
+		AddSystemLog("WARN", "auth", "Login failed - Invalid credentials", map[string]interface{}{
 			"username": req.Username,
 			"ip":       c.ClientIP(),
-			"error":    err.Error(),
 		})
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		return
 	}
+
+	// Reset brute force counter on successful login
+	if s.bruteForceProtection != nil {
+		s.bruteForceProtection.ResetAttempts(c.ClientIP())
+	}
+
 	s.logger.Printf("Login successful for user: %s (ID: %s)", user.Username, user.ID)
-	AddSystemLog("INFO", "auth", "✅ Login successful", map[string]interface{}{
+	AddSystemLog("INFO", "auth", "Login successful", map[string]interface{}{
 		"username": user.Username,
 		"user_id":  user.ID,
 		"role":     user.RoleName,
@@ -243,7 +255,7 @@ func (s *APIServer) handleLogin(c *gin.Context) {
 func (s *APIServer) handleRefreshToken(c *gin.Context) {
 	var req RefreshRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -275,16 +287,41 @@ func (s *APIServer) handleRefreshToken(c *gin.Context) {
 		return
 	}
 
-	// Update session activity
+	// Refresh Token Rotation: revoke the old refresh token and issue a new one.
+	// This prevents stolen refresh tokens from being reused.
+	if err := s.authRepo.RevokeRefreshToken(ctx, req.RefreshToken); err != nil {
+		s.logger.Printf("Failed to revoke old refresh token during rotation: %v", err)
+	}
+
+	// Generate new refresh token
+	newRefreshToken, err := generateRefreshToken()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate refresh token"})
+		return
+	}
+
+	// Store the new refresh token
+	newDBRefreshToken := &database.RefreshToken{
+		UserID:    user.ID,
+		Token:     newRefreshToken,
+		ExpiresAt: time.Now().Add(RefreshTokenDuration),
+	}
+	if err := s.authRepo.CreateRefreshToken(ctx, newDBRefreshToken); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to store refresh token"})
+		return
+	}
+
+	// Update session with new refresh token
 	if err := s.authRepo.UpdateSessionActivity(ctx, req.RefreshToken); err != nil {
 		// Log error but don't fail refresh
 		s.logger.Printf("Failed to update session activity: %v", err)
 	}
 
 	response := gin.H{
-		"access_token": accessToken,
-		"token_type":   "Bearer",
-		"expires_in":   int(AccessTokenDuration.Seconds()),
+		"access_token":  accessToken,
+		"refresh_token": newRefreshToken,
+		"token_type":    "Bearer",
+		"expires_in":    int(AccessTokenDuration.Seconds()),
 	}
 
 	c.JSON(http.StatusOK, response)
@@ -294,11 +331,17 @@ func (s *APIServer) handleRefreshToken(c *gin.Context) {
 func (s *APIServer) handleLogout(c *gin.Context) {
 	var req RefreshRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
 	ctx := c.Request.Context()
+
+	// Blacklist the current access token in Redis (expires when the token would)
+	if tokenID, exists := c.Get("token_id"); exists && s.redis != nil {
+		blacklistKey := "token_blacklist:" + tokenID.(string)
+		s.redis.Set(ctx, blacklistKey, "revoked", AccessTokenDuration)
+	}
 
 	// Revoke refresh token
 	if err := s.authRepo.RevokeRefreshToken(ctx, req.RefreshToken); err != nil {
@@ -325,6 +368,18 @@ func (s *APIServer) handleLogoutAll(c *gin.Context) {
 	}
 
 	ctx := c.Request.Context()
+
+	// Blacklist current access token
+	if tokenID, exists := c.Get("token_id"); exists && s.redis != nil {
+		blacklistKey := "token_blacklist:" + tokenID.(string)
+		s.redis.Set(ctx, blacklistKey, "revoked", AccessTokenDuration)
+	}
+
+	// Also blacklist all tokens for this user (using a user-level key)
+	if s.redis != nil {
+		userBlacklistKey := "user_tokens_revoked:" + userID.(string)
+		s.redis.Set(ctx, userBlacklistKey, time.Now().Unix(), AccessTokenDuration)
+	}
 
 	// Revoke all refresh tokens
 	if err := s.authRepo.RevokeAllUserTokens(ctx, userID.(string)); err != nil {
@@ -377,6 +432,17 @@ func (s *APIServer) handleGetMe(c *gin.Context) {
 	c.JSON(http.StatusOK, userInfo)
 }
 
+// sessionResponse is a safe subset of Session that excludes the refresh token
+type sessionResponse struct {
+	ID           string    `json:"id"`
+	UserID       string    `json:"user_id"`
+	IPAddress    *string   `json:"ip_address,omitempty"`
+	UserAgent    *string   `json:"user_agent,omitempty"`
+	ExpiresAt    time.Time `json:"expires_at"`
+	CreatedAt    time.Time `json:"created_at"`
+	LastActivity time.Time `json:"last_activity"`
+}
+
 // handleGetSessions returns all active sessions for the current user
 func (s *APIServer) handleGetSessions(c *gin.Context) {
 	// Get user ID from JWT (set by auth middleware)
@@ -395,9 +461,23 @@ func (s *APIServer) handleGetSessions(c *gin.Context) {
 		return
 	}
 
+	// Strip refresh tokens from response to prevent token exposure
+	safeSessions := make([]sessionResponse, len(sessions))
+	for i, sess := range sessions {
+		safeSessions[i] = sessionResponse{
+			ID:           sess.ID,
+			UserID:       sess.UserID,
+			IPAddress:    sess.IPAddress,
+			UserAgent:    sess.UserAgent,
+			ExpiresAt:    sess.ExpiresAt,
+			CreatedAt:    sess.CreatedAt,
+			LastActivity: sess.LastActivity,
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"sessions": sessions,
-		"total":    len(sessions),
+		"sessions": safeSessions,
+		"total":    len(safeSessions),
 	})
 }
 
@@ -405,7 +485,13 @@ func (s *APIServer) handleGetSessions(c *gin.Context) {
 func (s *APIServer) handleChangePassword(c *gin.Context) {
 	var req ChangePasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	// Enforce strong password policy on new password
+	if valid, reason := ValidatePassword(req.NewPassword); !valid {
+		c.JSON(http.StatusBadRequest, gin.H{"error": reason})
 		return
 	}
 

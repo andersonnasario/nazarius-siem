@@ -1,9 +1,11 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"sync"
 	"time"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -209,7 +211,8 @@ func (s *APIServer) handleListAdvHuntingCampaigns(c *gin.Context) {
 func (s *APIServer) handleCreateAdvHuntingCampaign(c *gin.Context) {
 	var campaign AdvancedHuntingCampaign
 	if err := c.ShouldBindJSON(&campaign); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+		log.Printf("[ERROR] handleCreateAdvHuntingCampaign bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Invalid request"})
 		return
 	}
 
@@ -259,7 +262,8 @@ func (s *APIServer) handleListAdvHuntingQueries(c *gin.Context) {
 func (s *APIServer) handleCreateAdvHuntingQuery(c *gin.Context) {
 	var query AdvancedHuntingQuery
 	if err := c.ShouldBindJSON(&query); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+		log.Printf("[ERROR] handleCreateAdvHuntingQuery bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Invalid request"})
 		return
 	}
 
@@ -289,7 +293,8 @@ func (s *APIServer) handleListAdvHuntingNotebooks(c *gin.Context) {
 func (s *APIServer) handleCreateAdvHuntingNotebook(c *gin.Context) {
 	var notebook AdvancedHuntingNotebook
 	if err := c.ShouldBindJSON(&notebook); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+		log.Printf("[ERROR] handleCreateAdvHuntingNotebook bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Invalid request"})
 		return
 	}
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { safeUrl } from '../utils/security';
 import {
   Box, Typography, Paper, Grid, Card, CardContent, Tabs, Tab,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination,
@@ -844,7 +845,7 @@ const CSPMGCPIntegrations = () => {
                   <Grid item xs={12}>
                     <Typography variant="caption" color="textSecondary">Link Externo</Typography>
                     <Typography variant="body2">
-                      <a href={selectedEvent.external_uri} target="_blank" rel="noopener noreferrer">
+                      <a href={safeUrl(selectedEvent.external_uri)} target="_blank" rel="noopener noreferrer">
                         {selectedEvent.external_uri}
                       </a>
                     </Typography>

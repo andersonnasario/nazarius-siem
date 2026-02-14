@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { safeUrl } from '../utils/security';
 import {
   Box,
   Typography,
@@ -535,7 +536,7 @@ const NotificationItem = ({ notification, onMarkAsRead, onDelete }) => {
                 size="small"
                 variant="outlined"
                 sx={{ mt: 1 }}
-                href={notification.action_url}
+                href={safeUrl(notification.action_url)}
               >
                 {notification.action_label || 'View Details'}
               </Button>

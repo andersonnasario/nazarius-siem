@@ -18,7 +18,9 @@ const getAPIBaseURL = () => {
 
 const API_BASE_URL = getAPIBaseURL();
 
-console.log('🔗 API Base URL:', API_BASE_URL);
+if (process.env.NODE_ENV === 'development') {
+  console.log('API Base URL:', API_BASE_URL);
+}
 
 // Custom param serializer for arrays - Go/Gin expects "key=val1&key=val2" not "key[]=val1"
 const paramsSerializer = (params) => {
@@ -44,7 +46,7 @@ const api = axios.create({
 // Interceptor para adicionar token de autenticação em todas as requisições
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('access_token');
+    const token = sessionStorage.getItem('access_token') || localStorage.getItem('access_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -64,8 +66,8 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       
-      // Tentar renovar o token
-      const refreshToken = localStorage.getItem('refresh_token');
+      // Tentar renovar o token (sessionStorage first, fallback to localStorage for migration)
+      const refreshToken = sessionStorage.getItem('refresh_token') || localStorage.getItem('refresh_token');
       if (refreshToken) {
         try {
           const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
@@ -73,13 +75,19 @@ api.interceptors.response.use(
           });
           
           const { access_token } = response.data;
-          localStorage.setItem('access_token', access_token);
+          sessionStorage.setItem('access_token', access_token);
+          
+          // Clean up any leftover localStorage tokens (migration)
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
           
           // Repetir a requisição original com novo token
           originalRequest.headers['Authorization'] = `Bearer ${access_token}`;
           return api(originalRequest);
         } catch (refreshError) {
           // Refresh falhou - limpar tokens e redirecionar
+          sessionStorage.removeItem('access_token');
+          sessionStorage.removeItem('refresh_token');
           localStorage.removeItem('access_token');
           localStorage.removeItem('refresh_token');
           window.location.href = '/login';
@@ -87,6 +95,7 @@ api.interceptors.response.use(
         }
       } else {
         // Sem refresh token - redirecionar para login
+        sessionStorage.removeItem('access_token');
         localStorage.removeItem('access_token');
         window.location.href = '/login';
       }

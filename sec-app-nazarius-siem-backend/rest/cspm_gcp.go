@@ -275,7 +275,7 @@ func (c *GCPCollector) collectSCCFindings(ctx context.Context, parent string, op
 	if err != nil {
 		log.Printf("[GCP SCC] Error creating client: %v", err)
 		c.mu.Lock()
-		c.lastError = fmt.Sprintf("SCC client error: %v", err)
+		c.lastError = "Collection error"
 		c.mu.Unlock()
 		return
 	}
@@ -735,7 +735,8 @@ func (s *APIServer) handleGCPTest(c *gin.Context) {
 	func() {
 		client, err := securitycenter.NewClient(ctx, opts...)
 		if err != nil {
-			tests = append(tests, map[string]interface{}{"name": "Security Command Center", "success": false, "error": err.Error()})
+			log.Printf("[ERROR] GCP test Security Command Center client: %v", err)
+			tests = append(tests, map[string]interface{}{"name": "Security Command Center", "success": false, "error": "Service unavailable"})
 			return
 		}
 		defer client.Close()
@@ -758,7 +759,8 @@ func (s *APIServer) handleGCPTest(c *gin.Context) {
 		})
 		_, err = it.Next()
 		if err != nil && err != iterator.Done {
-			tests = append(tests, map[string]interface{}{"name": "Security Command Center", "success": false, "error": err.Error()})
+			log.Printf("[ERROR] GCP test Security Command Center list: %v", err)
+			tests = append(tests, map[string]interface{}{"name": "Security Command Center", "success": false, "error": "Service unavailable"})
 			return
 		}
 		tests = append(tests, map[string]interface{}{"name": "Security Command Center", "success": true})
@@ -768,7 +770,8 @@ func (s *APIServer) handleGCPTest(c *gin.Context) {
 	func() {
 		client, err := asset.NewClient(ctx, opts...)
 		if err != nil {
-			tests = append(tests, map[string]interface{}{"name": "Cloud Asset Inventory", "success": false, "error": err.Error()})
+			log.Printf("[ERROR] GCP test Cloud Asset Inventory client: %v", err)
+			tests = append(tests, map[string]interface{}{"name": "Cloud Asset Inventory", "success": false, "error": "Service unavailable"})
 			return
 		}
 		defer client.Close()
@@ -787,7 +790,8 @@ func (s *APIServer) handleGCPTest(c *gin.Context) {
 		it := client.ListAssets(ctx, &assetpb.ListAssetsRequest{Parent: parent, PageSize: 1})
 		_, err = it.Next()
 		if err != nil && err != iterator.Done {
-			tests = append(tests, map[string]interface{}{"name": "Cloud Asset Inventory", "success": false, "error": err.Error()})
+			log.Printf("[ERROR] GCP test Cloud Asset Inventory list: %v", err)
+			tests = append(tests, map[string]interface{}{"name": "Cloud Asset Inventory", "success": false, "error": "Service unavailable"})
 			return
 		}
 		tests = append(tests, map[string]interface{}{"name": "Cloud Asset Inventory", "success": true})
@@ -797,7 +801,8 @@ func (s *APIServer) handleGCPTest(c *gin.Context) {
 	func() {
 		client, err := logging.NewClient(ctx, opts...)
 		if err != nil {
-			tests = append(tests, map[string]interface{}{"name": "Cloud Audit Logs", "success": false, "error": err.Error()})
+			log.Printf("[ERROR] GCP test Cloud Audit Logs client: %v", err)
+			tests = append(tests, map[string]interface{}{"name": "Cloud Audit Logs", "success": false, "error": "Service unavailable"})
 			return
 		}
 		defer client.Close()
@@ -813,7 +818,8 @@ func (s *APIServer) handleGCPTest(c *gin.Context) {
 		})
 		_, err = it.Next()
 		if err != nil && err != iterator.Done {
-			tests = append(tests, map[string]interface{}{"name": "Cloud Audit Logs", "success": false, "error": err.Error()})
+			log.Printf("[ERROR] GCP test Cloud Audit Logs list: %v", err)
+			tests = append(tests, map[string]interface{}{"name": "Cloud Audit Logs", "success": false, "error": "Service unavailable"})
 			return
 		}
 		tests = append(tests, map[string]interface{}{"name": "Cloud Audit Logs", "success": true})
@@ -915,7 +921,8 @@ func (s *APIServer) handleGCPFindings(c *gin.Context) {
 	}
 	res, err := req.Do(context.Background(), s.opensearch)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"findings": []interface{}{}, "total": 0, "error": err.Error()})
+		log.Printf("[ERROR] GCP findings search: %v", err)
+		c.JSON(http.StatusOK, gin.H{"findings": []interface{}{}, "total": 0, "error": "Internal server error"})
 		return
 	}
 	defer res.Body.Close()
@@ -993,7 +1000,8 @@ func (s *APIServer) handleGCPStats(c *gin.Context) {
 	}
 	res, err := req.Do(context.Background(), s.opensearch)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] GCP stats search: %v", err)
+		c.JSON(http.StatusOK, gin.H{"error": "Internal server error"})
 		return
 	}
 	defer res.Body.Close()

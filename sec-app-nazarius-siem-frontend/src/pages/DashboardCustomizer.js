@@ -112,7 +112,7 @@ const DashboardCustomizer = () => {
         setLoading(false);
         return;
       } catch (apiError) {
-        console.log('Dashboard not found in API, using mock data');
+        // Dashboard not found in API, using mock data
       }
 
       // Fallback to mock data

@@ -1285,11 +1285,13 @@ func (s *APIServer) fetchTopCVEsByAlerts(c *gin.Context, limit int) []CVEAlertSu
 }
 
 func (s *APIServer) searchCVEsInOpenSearch(c *gin.Context, query string, limit int) ([]CVE, int, error) {
+	// Sanitize query to prevent OpenSearch injection
+	safeQuery := sanitizeSearchQuery(query)
 	searchQuery := map[string]interface{}{
 		"size": limit,
 		"query": map[string]interface{}{
 			"multi_match": map[string]interface{}{
-				"query":  query,
+				"query":  safeQuery,
 				"fields": []string{"id^5", "description^2", "affectedProducts", "weaknesses"},
 				"type":   "best_fields",
 			},
@@ -1334,6 +1336,9 @@ func (s *APIServer) fetchAlertsByCVE(c *gin.Context, cveID string, limit int) ([
 		return []Alert{}, nil
 	}
 
+	// Sanitize cveID (e.g. "CVE-2024-12345") to prevent injection
+	safeCveID := sanitizeAlphanumeric(cveID)
+
 	query := map[string]interface{}{
 		"size": limit,
 		"query": map[string]interface{}{
@@ -1341,17 +1346,17 @@ func (s *APIServer) fetchAlertsByCVE(c *gin.Context, cveID string, limit int) ([
 				"should": []map[string]interface{}{
 					{
 						"match_phrase": map[string]interface{}{
-							"name": cveID,
+							"name": safeCveID,
 						},
 					},
 					{
 						"match_phrase": map[string]interface{}{
-							"description": cveID,
+							"description": safeCveID,
 						},
 					},
 					{
 						"match_phrase": map[string]interface{}{
-							"query": cveID,
+							"query": safeCveID,
 						},
 					},
 				},
@@ -1772,6 +1777,9 @@ func (s *APIServer) countEventsByCVE(cveID string) int {
 		return 0
 	}
 
+	// Sanitize CVE ID to prevent injection (CVE IDs are alphanumeric + hyphens only)
+	safeCveID := sanitizeAlphanumeric(cveID)
+
 	// Buscar em múltiplos campos onde o CVE ID pode aparecer
 	query := map[string]interface{}{
 		"size":             0,
@@ -1779,12 +1787,12 @@ func (s *APIServer) countEventsByCVE(cveID string) int {
 		"query": map[string]interface{}{
 			"bool": map[string]interface{}{
 				"should": []map[string]interface{}{
-					{"match_phrase": map[string]interface{}{"description": cveID}},
-					{"match_phrase": map[string]interface{}{"type": cveID}},
-					{"match_phrase": map[string]interface{}{"source": cveID}},
+					{"match_phrase": map[string]interface{}{"description": safeCveID}},
+					{"match_phrase": map[string]interface{}{"type": safeCveID}},
+					{"match_phrase": map[string]interface{}{"source": safeCveID}},
 					{
 						"query_string": map[string]interface{}{
-							"query":            "\"" + cveID + "\"",
+							"query":            "\"" + safeCveID + "\"",
 							"default_operator": "AND",
 						},
 					},

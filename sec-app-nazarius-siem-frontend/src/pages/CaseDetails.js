@@ -133,7 +133,7 @@ const CaseDetails = () => {
           setLinkedAlerts(linkedResponse.data.alerts);
         }
       } catch (linkedErr) {
-        console.log('Alertas vinculados não disponíveis:', linkedErr);
+        // Alertas vinculados não disponíveis - endpoint pode não existir ainda
       }
 
       // Carregar eventos vinculados
@@ -143,7 +143,7 @@ const CaseDetails = () => {
           setLinkedEvents(linkedEventsResponse.data.events);
         }
       } catch (linkedEventsErr) {
-        console.log('Eventos vinculados não disponíveis:', linkedEventsErr);
+        // Eventos vinculados não disponíveis - endpoint pode não existir ainda
       }
 
       // Carregar checklist
@@ -153,7 +153,7 @@ const CaseDetails = () => {
           setChecklistItems(checklistResponse.data.checklist);
         }
       } catch (checklistErr) {
-        console.log('Checklist não disponível:', checklistErr);
+        // Checklist não disponível - endpoint pode não existir ainda
       }
 
       // Carregar playbooks
@@ -163,7 +163,7 @@ const CaseDetails = () => {
           setPlaybooks(playbooksResponse.data.playbooks);
         }
       } catch (playbookErr) {
-        console.log('Playbooks não disponíveis:', playbookErr);
+        // Playbooks não disponíveis - endpoint pode não existir ainda
       }
     } catch (err) {
       console.error('Erro ao carregar caso:', err);
@@ -188,7 +188,6 @@ const CaseDetails = () => {
           setAnalysts(activeAnalysts);
         }
       } catch (err) {
-        console.log('Erro ao carregar analistas:', err);
         // Não é crítico, o campo continua funcionando como texto livre
       }
     };

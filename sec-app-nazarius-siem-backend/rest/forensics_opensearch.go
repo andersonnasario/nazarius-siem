@@ -354,7 +354,8 @@ func (s *APIServer) handleListForensicInvestigations(c *gin.Context) {
 func (s *APIServer) handleCreateForensicInvestigation(c *gin.Context) {
 	var inv ForensicInvestigation
 	if err := c.ShouldBindJSON(&inv); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+		log.Printf("[ERROR] handleCreateForensicInvestigation bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Invalid request"})
 		return
 	}
 
@@ -484,7 +485,8 @@ func (s *APIServer) handleUpdateForensicInvestigation(c *gin.Context) {
 
 	var update ForensicInvestigation
 	if err := c.ShouldBindJSON(&update); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+		log.Printf("[ERROR] handleUpdateForensicInvestigation bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Invalid request"})
 		return
 	}
 
@@ -650,7 +652,8 @@ func (s *APIServer) handleListForensicEvidence(c *gin.Context) {
 func (s *APIServer) handleCreateForensicEvidence(c *gin.Context) {
 	var ev ForensicEvidence
 	if err := c.ShouldBindJSON(&ev); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+		log.Printf("[ERROR] handleCreateForensicEvidence bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Invalid request"})
 		return
 	}
 
@@ -807,7 +810,8 @@ func (s *APIServer) handleAddForensicTimelineEntry(c *gin.Context) {
 
 	var entry ForensicTimelineEntry
 	if err := c.ShouldBindJSON(&entry); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+		log.Printf("[ERROR] handleAddForensicTimelineEntry bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Invalid request"})
 		return
 	}
 

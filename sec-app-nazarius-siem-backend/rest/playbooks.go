@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -153,7 +154,8 @@ func (s *APIServer) handleListPlaybooks(c *gin.Context) {
 
 	dbPlaybooks, err := s.playbookRepo.List(ctx, filters)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list playbooks: " + err.Error()})
+		log.Printf("[ERROR] Failed to list playbooks: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
@@ -216,7 +218,8 @@ func (s *APIServer) handleCreatePlaybook(c *gin.Context) {
 
 	var playbook Playbook
 	if err := c.ShouldBindJSON(&playbook); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleCreatePlaybook bind: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -238,13 +241,15 @@ func (s *APIServer) handleCreatePlaybook(c *gin.Context) {
 	// Converter para formato do DB
 	dbPlaybook, err := convertAPIPlaybookToDB(&playbook)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleCreatePlaybook convert: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
 	// Salvar no banco de dados
 	if err := s.playbookRepo.Create(ctx, dbPlaybook); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create playbook: " + err.Error()})
+		log.Printf("[ERROR] Failed to create playbook: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
@@ -267,7 +272,8 @@ func (s *APIServer) handleUpdatePlaybook(c *gin.Context) {
 
 	var playbook Playbook
 	if err := c.ShouldBindJSON(&playbook); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleUpdatePlaybook bind: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -285,13 +291,15 @@ func (s *APIServer) handleUpdatePlaybook(c *gin.Context) {
 	// Converter para formato do DB
 	dbPlaybook, err := convertAPIPlaybookToDB(&playbook)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleUpdatePlaybook convert: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
 	// Atualizar no banco de dados
 	if err := s.playbookRepo.Update(ctx, dbPlaybook); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update playbook: " + err.Error()})
+		log.Printf("[ERROR] Failed to update playbook: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
@@ -323,7 +331,8 @@ func (s *APIServer) handleDeletePlaybook(c *gin.Context) {
 
 	// Deletar do banco de dados
 	if err := s.playbookRepo.Delete(ctx, id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete playbook: " + err.Error()})
+		log.Printf("[ERROR] Failed to delete playbook: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
@@ -380,7 +389,8 @@ func (s *APIServer) handleExecutePlaybook(c *gin.Context) {
 	// Executar playbook
 	execution, err := engine.ExecutePlaybook(playbook, triggerData, "admin") // TODO: Get from JWT token
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleExecutePlaybook: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
@@ -445,7 +455,8 @@ func (s *APIServer) handleListExecutions(c *gin.Context) {
 
 	dbExecutions, err := s.playbookRepo.GetExecutionsByPlaybookID(ctx, playbookID, limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to list executions: " + err.Error()})
+		log.Printf("[ERROR] Failed to list executions: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 

@@ -590,7 +590,8 @@ func (s *APIServer) handleLookupIOC(c *gin.Context) {
 	tim := GetThreatIntelManager()
 	result, err := tim.LookupIOC(indicator, IOCType(iocType))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleLookupIOC: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
@@ -608,7 +609,8 @@ func (s *APIServer) handleBulkLookupIOC(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&request); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleBulkLookupIOC bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -674,7 +676,8 @@ func (s *APIServer) handleSyncThreatFeed(c *gin.Context) {
 	case "emergingthreats":
 		ips, err := tim.SyncEmergingThreats()
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			log.Printf("[ERROR] handleSyncThreatFeed emergingthreats: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{

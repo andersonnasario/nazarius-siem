@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -142,7 +143,8 @@ func handleGetRetentionPolicy(c *gin.Context) {
 func handleCreateRetentionPolicy(c *gin.Context) {
 	var policy RetentionPolicy
 	if err := c.BindJSON(&policy); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleCreateRetentionPolicy bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -173,7 +175,8 @@ func handleUpdateRetentionPolicy(c *gin.Context) {
 
 	var updates RetentionPolicy
 	if err := c.BindJSON(&updates); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleUpdateRetentionPolicy bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -354,7 +357,8 @@ func handleUpdateDataTypeConfig(c *gin.Context) {
 
 	var updates DataTypeConfig
 	if err := c.BindJSON(&updates); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleUpdateDataTypeConfig bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 

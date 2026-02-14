@@ -53,147 +53,147 @@ const (
 
 // FortinetWebhookConfig holds webhook configuration
 type FortinetWebhookConfig struct {
-	ID           string    `json:"id"`
-	Name         string    `json:"name"`
-	DeviceIP     string    `json:"device_ip"`
-	DeviceName   string    `json:"device_name"`
-	VDOM         string    `json:"vdom"`
-	APIKey       string    `json:"api_key"`       // For authentication
-	SecretKey    string    `json:"secret_key"`    // For HMAC validation
-	Enabled      bool      `json:"enabled"`
-	CreatedAt    time.Time `json:"created_at"`
-	LastEventAt  *time.Time `json:"last_event_at"`
-	EventCount   int64     `json:"event_count"`
-	LogTypes     []string  `json:"log_types"`     // Filter log types to accept
+	ID          string     `json:"id"`
+	Name        string     `json:"name"`
+	DeviceIP    string     `json:"device_ip"`
+	DeviceName  string     `json:"device_name"`
+	VDOM        string     `json:"vdom"`
+	APIKey      string     `json:"api_key"`    // For authentication
+	SecretKey   string     `json:"secret_key"` // For HMAC validation
+	Enabled     bool       `json:"enabled"`
+	CreatedAt   time.Time  `json:"created_at"`
+	LastEventAt *time.Time `json:"last_event_at"`
+	EventCount  int64      `json:"event_count"`
+	LogTypes    []string   `json:"log_types"` // Filter log types to accept
 }
 
 // FortinetRawLog represents raw syslog from FortiGate
 type FortinetRawLog struct {
-	Timestamp   time.Time              `json:"timestamp"`
-	RawMessage  string                 `json:"raw_message"`
-	DeviceIP    string                 `json:"device_ip"`
-	DeviceName  string                 `json:"device_name"`
-	Facility    int                    `json:"facility"`
-	Severity    int                    `json:"severity"`
-	ParsedData  map[string]interface{} `json:"parsed_data"`
+	Timestamp  time.Time              `json:"timestamp"`
+	RawMessage string                 `json:"raw_message"`
+	DeviceIP   string                 `json:"device_ip"`
+	DeviceName string                 `json:"device_name"`
+	Facility   int                    `json:"facility"`
+	Severity   int                    `json:"severity"`
+	ParsedData map[string]interface{} `json:"parsed_data"`
 }
 
 // FortinetNormalizedEvent represents a normalized SIEM event
 type FortinetNormalizedEvent struct {
-	ID              string                 `json:"id"`
-	Timestamp       time.Time              `json:"timestamp"`
-	ReceiveTime     time.Time              `json:"receive_time"`
-	DeviceIP        string                 `json:"device_ip"`
-	DeviceName      string                 `json:"device_name"`
-	DeviceVDOM      string                 `json:"device_vdom"`
-	LogType         string                 `json:"log_type"`
-	SubType         string                 `json:"sub_type"`
-	Level           string                 `json:"level"`
-	EventType       string                 `json:"event_type"`
-	Action          string                 `json:"action"`
-	
+	ID          string    `json:"id"`
+	Timestamp   time.Time `json:"timestamp"`
+	ReceiveTime time.Time `json:"receive_time"`
+	DeviceIP    string    `json:"device_ip"`
+	DeviceName  string    `json:"device_name"`
+	DeviceVDOM  string    `json:"device_vdom"`
+	LogType     string    `json:"log_type"`
+	SubType     string    `json:"sub_type"`
+	Level       string    `json:"level"`
+	EventType   string    `json:"event_type"`
+	Action      string    `json:"action"`
+
 	// Source Information
-	SrcIP           string                 `json:"src_ip"`
-	SrcPort         int                    `json:"src_port"`
-	SrcMAC          string                 `json:"src_mac"`
-	SrcInterface    string                 `json:"src_interface"`
-	SrcCountry      string                 `json:"src_country"`
-	SrcUser         string                 `json:"src_user"`
-	
+	SrcIP        string `json:"src_ip"`
+	SrcPort      int    `json:"src_port"`
+	SrcMAC       string `json:"src_mac"`
+	SrcInterface string `json:"src_interface"`
+	SrcCountry   string `json:"src_country"`
+	SrcUser      string `json:"src_user"`
+
 	// Destination Information
-	DstIP           string                 `json:"dst_ip"`
-	DstPort         int                    `json:"dst_port"`
-	DstMAC          string                 `json:"dst_mac"`
-	DstInterface    string                 `json:"dst_interface"`
-	DstCountry      string                 `json:"dst_country"`
-	
+	DstIP        string `json:"dst_ip"`
+	DstPort      int    `json:"dst_port"`
+	DstMAC       string `json:"dst_mac"`
+	DstInterface string `json:"dst_interface"`
+	DstCountry   string `json:"dst_country"`
+
 	// Network Information
-	Protocol        string                 `json:"protocol"`
-	ProtocolNumber  int                    `json:"protocol_number"`
-	Service         string                 `json:"service"`
-	Application     string                 `json:"application"`
-	AppCategory     string                 `json:"app_category"`
-	SessionID       string                 `json:"session_id"`
-	
+	Protocol       string `json:"protocol"`
+	ProtocolNumber int    `json:"protocol_number"`
+	Service        string `json:"service"`
+	Application    string `json:"application"`
+	AppCategory    string `json:"app_category"`
+	SessionID      string `json:"session_id"`
+
 	// Traffic Metrics
-	SentBytes       int64                  `json:"sent_bytes"`
-	ReceivedBytes   int64                  `json:"received_bytes"`
-	SentPackets     int64                  `json:"sent_packets"`
-	ReceivedPackets int64                  `json:"received_packets"`
-	Duration        int                    `json:"duration"`
-	
+	SentBytes       int64 `json:"sent_bytes"`
+	ReceivedBytes   int64 `json:"received_bytes"`
+	SentPackets     int64 `json:"sent_packets"`
+	ReceivedPackets int64 `json:"received_packets"`
+	Duration        int   `json:"duration"`
+
 	// Security Information
-	Policy          string                 `json:"policy"`
-	PolicyID        int                    `json:"policy_id"`
-	PolicyType      string                 `json:"policy_type"`
-	Profile         string                 `json:"profile"`
-	ThreatLevel     string                 `json:"threat_level"`
-	ThreatScore     int                    `json:"threat_score"`
-	ThreatType      string                 `json:"threat_type"`
-	AttackName      string                 `json:"attack_name"`
-	AttackID        string                 `json:"attack_id"`
-	CVE             []string               `json:"cve"`
-	Severity        string                 `json:"severity"`
-	Reference       string                 `json:"reference"`
-	
+	Policy      string   `json:"policy"`
+	PolicyID    int      `json:"policy_id"`
+	PolicyType  string   `json:"policy_type"`
+	Profile     string   `json:"profile"`
+	ThreatLevel string   `json:"threat_level"`
+	ThreatScore int      `json:"threat_score"`
+	ThreatType  string   `json:"threat_type"`
+	AttackName  string   `json:"attack_name"`
+	AttackID    string   `json:"attack_id"`
+	CVE         []string `json:"cve"`
+	Severity    string   `json:"severity"`
+	Reference   string   `json:"reference"`
+
 	// UTM Specific
-	URL             string                 `json:"url"`
-	Hostname        string                 `json:"hostname"`
-	Category        string                 `json:"category"`
-	CategoryID      int                    `json:"category_id"`
-	VirusName       string                 `json:"virus_name"`
-	FileName        string                 `json:"file_name"`
-	FileType        string                 `json:"file_type"`
-	FileSize        int64                  `json:"file_size"`
-	FileHash        string                 `json:"file_hash"`
-	
+	URL        string `json:"url"`
+	Hostname   string `json:"hostname"`
+	Category   string `json:"category"`
+	CategoryID int    `json:"category_id"`
+	VirusName  string `json:"virus_name"`
+	FileName   string `json:"file_name"`
+	FileType   string `json:"file_type"`
+	FileSize   int64  `json:"file_size"`
+	FileHash   string `json:"file_hash"`
+
 	// VPN Information
-	VPNTunnel       string                 `json:"vpn_tunnel"`
-	VPNType         string                 `json:"vpn_type"`
-	VPNUser         string                 `json:"vpn_user"`
-	
+	VPNTunnel string `json:"vpn_tunnel"`
+	VPNType   string `json:"vpn_type"`
+	VPNUser   string `json:"vpn_user"`
+
 	// NAT Information
-	NATSrcIP        string                 `json:"nat_src_ip"`
-	NATSrcPort      int                    `json:"nat_src_port"`
-	NATDstIP        string                 `json:"nat_dst_ip"`
-	NATDstPort      int                    `json:"nat_dst_port"`
-	
+	NATSrcIP   string `json:"nat_src_ip"`
+	NATSrcPort int    `json:"nat_src_port"`
+	NATDstIP   string `json:"nat_dst_ip"`
+	NATDstPort int    `json:"nat_dst_port"`
+
 	// Message and Metadata
-	Message         string                 `json:"message"`
-	EventMessage    string                 `json:"event_message"`
-	RawLog          string                 `json:"raw_log"`
-	Tags            []string               `json:"tags"`
-	
+	Message      string   `json:"message"`
+	EventMessage string   `json:"event_message"`
+	RawLog       string   `json:"raw_log"`
+	Tags         []string `json:"tags"`
+
 	// MITRE ATT&CK Mapping
-	MITRETactic     string                 `json:"mitre_tactic"`
-	MITRETechnique  string                 `json:"mitre_technique"`
-	
+	MITRETactic    string `json:"mitre_tactic"`
+	MITRETechnique string `json:"mitre_technique"`
+
 	// Threat Intel Enrichment
-	IOCMatch        bool                   `json:"ioc_match"`
-	IOCType         string                 `json:"ioc_type"`
-	IOCFeed         string                 `json:"ioc_feed"`
-	
+	IOCMatch bool   `json:"ioc_match"`
+	IOCType  string `json:"ioc_type"`
+	IOCFeed  string `json:"ioc_feed"`
+
 	// Additional Fields
-	Extra           map[string]interface{} `json:"extra"`
+	Extra map[string]interface{} `json:"extra"`
 }
 
 // FortinetWebhookStats holds statistics
 type FortinetWebhookStats struct {
-	TotalEventsReceived   int64            `json:"total_events_received"`
-	EventsLast24h         int64            `json:"events_last_24h"`
-	EventsLastHour        int64            `json:"events_last_hour"`
-	EventsByType          map[string]int64 `json:"events_by_type"`
-	EventsByAction        map[string]int64 `json:"events_by_action"`
-	EventsBySeverity      map[string]int64 `json:"events_by_severity"`
-	TopSourceIPs          []IPCount        `json:"top_source_ips"`
-	TopDestIPs            []IPCount        `json:"top_dest_ips"`
-	TopBlockedIPs         []IPCount        `json:"top_blocked_ips"`
-	TopApplications       []NameCount      `json:"top_applications"`
-	TopCategories         []NameCount      `json:"top_categories"`
-	ThreatDetections      int64            `json:"threat_detections"`
-	IOCMatches            int64            `json:"ioc_matches"`
-	ActiveDevices         int              `json:"active_devices"`
-	LastEventTime         *time.Time       `json:"last_event_time"`
+	TotalEventsReceived int64            `json:"total_events_received"`
+	EventsLast24h       int64            `json:"events_last_24h"`
+	EventsLastHour      int64            `json:"events_last_hour"`
+	EventsByType        map[string]int64 `json:"events_by_type"`
+	EventsByAction      map[string]int64 `json:"events_by_action"`
+	EventsBySeverity    map[string]int64 `json:"events_by_severity"`
+	TopSourceIPs        []IPCount        `json:"top_source_ips"`
+	TopDestIPs          []IPCount        `json:"top_dest_ips"`
+	TopBlockedIPs       []IPCount        `json:"top_blocked_ips"`
+	TopApplications     []NameCount      `json:"top_applications"`
+	TopCategories       []NameCount      `json:"top_categories"`
+	ThreatDetections    int64            `json:"threat_detections"`
+	IOCMatches          int64            `json:"ioc_matches"`
+	ActiveDevices       int              `json:"active_devices"`
+	LastEventTime       *time.Time       `json:"last_event_time"`
 }
 
 type IPCount struct {
@@ -302,7 +302,7 @@ func (s *APIServer) handleFortinetWebhook(c *gin.Context) {
 
 	// Determine content type
 	contentType := c.ContentType()
-	
+
 	var events []*FortinetNormalizedEvent
 
 	switch {
@@ -318,8 +318,8 @@ func (s *APIServer) handleFortinetWebhook(c *gin.Context) {
 	}
 
 	if err != nil {
-		log.Printf("Error parsing Fortinet logs: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to parse logs", "details": err.Error()})
+		log.Printf("[ERROR] parsing Fortinet logs: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -371,12 +371,12 @@ func (s *APIServer) handleFortinetWebhook(c *gin.Context) {
 	fortinetConfigMutex.Unlock()
 
 	c.JSON(http.StatusOK, gin.H{
-		"success":         true,
-		"events_received": len(events),
+		"success":          true,
+		"events_received":  len(events),
 		"events_processed": processedCount,
 		"alerts_generated": alertCount,
-		"ioc_matches":     iocMatchCount,
-		"timestamp":       time.Now(),
+		"ioc_matches":      iocMatchCount,
+		"timestamp":        time.Now(),
 	})
 }
 
@@ -392,7 +392,8 @@ func (s *APIServer) handleFortinetBatchWebhook(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&batch); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] Invalid Fortinet batch request: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -930,37 +931,37 @@ func shouldGenerateAlert(event *FortinetNormalizedEvent) bool {
 // generateFortinetAlert creates an alert from a Fortinet event
 func (s *APIServer) generateFortinetAlert(event *FortinetNormalizedEvent) error {
 	alert := map[string]interface{}{
-		"id":          uuid.New().String(),
-		"timestamp":   time.Now(),
-		"source":      "fortinet",
-		"device_ip":   event.DeviceIP,
-		"device_name": event.DeviceName,
-		"log_type":    event.LogType,
-		"sub_type":    event.SubType,
-		"severity":    event.Severity,
-		"action":      event.Action,
-		"title":       generateAlertTitle(event),
-		"description": generateAlertDescription(event),
-		"src_ip":      event.SrcIP,
-		"src_port":    event.SrcPort,
-		"dst_ip":      event.DstIP,
-		"dst_port":    event.DstPort,
-		"protocol":    event.Protocol,
-		"service":     event.Service,
-		"application": event.Application,
-		"attack_name": event.AttackName,
-		"attack_id":   event.AttackID,
-		"virus_name":  event.VirusName,
-		"url":         event.URL,
-		"ioc_match":   event.IOCMatch,
-		"ioc_type":    event.IOCType,
-		"ioc_feed":    event.IOCFeed,
+		"id":              uuid.New().String(),
+		"timestamp":       time.Now(),
+		"source":          "fortinet",
+		"device_ip":       event.DeviceIP,
+		"device_name":     event.DeviceName,
+		"log_type":        event.LogType,
+		"sub_type":        event.SubType,
+		"severity":        event.Severity,
+		"action":          event.Action,
+		"title":           generateAlertTitle(event),
+		"description":     generateAlertDescription(event),
+		"src_ip":          event.SrcIP,
+		"src_port":        event.SrcPort,
+		"dst_ip":          event.DstIP,
+		"dst_port":        event.DstPort,
+		"protocol":        event.Protocol,
+		"service":         event.Service,
+		"application":     event.Application,
+		"attack_name":     event.AttackName,
+		"attack_id":       event.AttackID,
+		"virus_name":      event.VirusName,
+		"url":             event.URL,
+		"ioc_match":       event.IOCMatch,
+		"ioc_type":        event.IOCType,
+		"ioc_feed":        event.IOCFeed,
 		"mitre_tactic":    event.MITRETactic,
 		"mitre_technique": event.MITRETechnique,
-		"tags":        event.Tags,
-		"status":      "new",
-		"event_id":    event.ID,
-		"raw_log":     event.RawLog,
+		"tags":            event.Tags,
+		"status":          "new",
+		"event_id":        event.ID,
+		"raw_log":         event.RawLog,
 	}
 
 	// Index alert
@@ -1042,7 +1043,8 @@ func (s *APIServer) handleListFortinetConfigs(c *gin.Context) {
 func (s *APIServer) handleCreateFortinetConfig(c *gin.Context) {
 	var config FortinetWebhookConfig
 	if err := c.ShouldBindJSON(&config); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleCreateFortinetConfig bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -1078,7 +1080,8 @@ func (s *APIServer) handleUpdateFortinetConfig(c *gin.Context) {
 
 	var updates FortinetWebhookConfig
 	if err := c.ShouldBindJSON(&updates); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleUpdateFortinetConfig bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -1227,7 +1230,8 @@ func (s *APIServer) handleGetFortinetEvents(c *gin.Context) {
 	// Execute search
 	events, total, err := s.searchFortinetIndex(FortinetIndexName, query)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleGetFortinetEvents search: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
@@ -1272,7 +1276,8 @@ func (s *APIServer) handleGetFortinetAlerts(c *gin.Context) {
 
 	alerts, total, err := s.searchFortinetIndex(FortinetAlertsIndexName, query)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleGetFortinetAlerts search: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
@@ -1786,4 +1791,3 @@ func (s *APIServer) EnsureFortinetIndices() error {
 
 	return nil
 }
-

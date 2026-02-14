@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"time"
 
@@ -509,7 +510,8 @@ func (s *APIServer) handleCreateTICampaign(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+		log.Printf("[ERROR] handleCreateCampaign bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Invalid request"})
 		return
 	}
 
@@ -577,7 +579,8 @@ func (s *APIServer) handleCreateThreatActor(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+		log.Printf("[ERROR] handleCreateThreatActor bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Invalid request"})
 		return
 	}
 
@@ -635,7 +638,8 @@ func (s *APIServer) handleUpdateCorrelationStatus(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+		log.Printf("[ERROR] handleUpdateCorrelationStatus bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Invalid request"})
 		return
 	}
 

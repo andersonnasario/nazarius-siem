@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"time"
 
@@ -196,7 +197,8 @@ func (s *APIServer) handleListPhishingCampaigns(c *gin.Context) {
 func (s *APIServer) handleCreatePhishingCampaign(c *gin.Context) {
 	var campaign PhishingCampaign
 	if err := c.ShouldBindJSON(&campaign); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleCreatePhishingCampaign bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 

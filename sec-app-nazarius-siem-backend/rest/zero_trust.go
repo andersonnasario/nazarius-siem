@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -337,9 +338,10 @@ func (s *APIServer) handleListZeroTrustPolicies(c *gin.Context) {
 func (s *APIServer) handleCreateZeroTrustPolicy(c *gin.Context) {
 	var policy ZeroTrustPolicy
 	if err := c.ShouldBindJSON(&policy); err != nil {
+		log.Printf("[ERROR] handleCreateZeroTrustPolicy bind JSON: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"error":   "Invalid request body: " + err.Error(),
+			"error":   "Invalid request",
 		})
 		return
 	}
@@ -413,9 +415,10 @@ func (s *APIServer) handleUpdateZeroTrustPolicy(c *gin.Context) {
 
 	var updates ZeroTrustPolicy
 	if err := c.ShouldBindJSON(&updates); err != nil {
+		log.Printf("[ERROR] handleUpdateZeroTrustPolicy bind JSON: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"error":   "Invalid request body: " + err.Error(),
+			"error":   "Invalid request",
 		})
 		return
 	}

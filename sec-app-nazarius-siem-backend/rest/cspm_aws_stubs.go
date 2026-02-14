@@ -24,6 +24,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// cspmErrMsg returns a generic error message for JSON responses, logging the actual error
+func cspmErrMsg(e error, context string) string {
+	if e != nil {
+		log.Printf("[ERROR] %s: %v", context, e)
+		return "Service unavailable"
+	}
+	return ""
+}
+
 // initCSPMAWS initializes AWS service connections for CSPM
 func initCSPMAWS() {
 	if os.Getenv("USE_REAL_AWS_DATA") != "true" && os.Getenv("DISABLE_MOCK_DATA") != "true" {
@@ -40,7 +49,8 @@ func initCSPMAWS() {
 func (s *APIServer) handleGetAWSConfigFindings(c *gin.Context) {
 	sess, err := getAWSSession()
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"findings": []interface{}{}, "total": 0, "error": "AWS session not available: " + err.Error()})
+		log.Printf("[ERROR] CSPM AWS Config findings session: %v", err)
+		c.JSON(http.StatusOK, gin.H{"findings": []interface{}{}, "total": 0, "error": "AWS session not available"})
 		return
 	}
 
@@ -55,7 +65,7 @@ func (s *APIServer) handleGetAWSConfigFindings(c *gin.Context) {
 	result, err := client.DescribeComplianceByConfigRule(input)
 	if err != nil {
 		log.Printf("[CSPM AWS Config] Error: %v", err)
-		c.JSON(http.StatusOK, gin.H{"findings": []interface{}{}, "total": 0, "error": err.Error()})
+		c.JSON(http.StatusOK, gin.H{"findings": []interface{}{}, "total": 0, "error": "Service unavailable"})
 		return
 	}
 
@@ -108,7 +118,7 @@ func (s *APIServer) handleGetAWSConfigRules(c *gin.Context) {
 	result, err := client.DescribeConfigRules(input)
 	if err != nil {
 		log.Printf("[CSPM AWS Config Rules] Error: %v", err)
-		c.JSON(http.StatusOK, gin.H{"rules": []interface{}{}, "total": 0, "error": err.Error()})
+		c.JSON(http.StatusOK, gin.H{"rules": []interface{}{}, "total": 0, "error": "Service unavailable"})
 		return
 	}
 
@@ -189,7 +199,7 @@ func (s *APIServer) handleGetSecurityHubFindings(c *gin.Context) {
 	result, err := client.GetFindings(input)
 	if err != nil {
 		log.Printf("[CSPM Security Hub] Error: %v", err)
-		c.JSON(http.StatusOK, gin.H{"findings": []interface{}{}, "total": 0, "error": err.Error()})
+		c.JSON(http.StatusOK, gin.H{"findings": []interface{}{}, "total": 0, "error": "Service unavailable"})
 		return
 	}
 
@@ -246,7 +256,7 @@ func (s *APIServer) handleGetGuardDutyFindings(c *gin.Context) {
 	collector, err := NewGuardDutyCollectorFromSession(sess, region)
 	if err != nil {
 		log.Printf("[CSPM GuardDuty] Error creating collector: %v", err)
-		c.JSON(http.StatusOK, gin.H{"findings": []interface{}{}, "total": 0, "error": err.Error()})
+		c.JSON(http.StatusOK, gin.H{"findings": []interface{}{}, "total": 0, "error": "Service unavailable"})
 		return
 	}
 
@@ -260,7 +270,7 @@ func (s *APIServer) handleGetGuardDutyFindings(c *gin.Context) {
 	findings, err := collector.CollectFindings(maxResults)
 	if err != nil {
 		log.Printf("[CSPM GuardDuty] Error collecting findings: %v", err)
-		c.JSON(http.StatusOK, gin.H{"findings": []interface{}{}, "total": 0, "error": err.Error()})
+		c.JSON(http.StatusOK, gin.H{"findings": []interface{}{}, "total": 0, "error": "Service unavailable"})
 		return
 	}
 
@@ -314,7 +324,7 @@ func (s *APIServer) handleGetInspectorFindings(c *gin.Context) {
 	result, err := client.ListFindings(input)
 	if err != nil {
 		log.Printf("[CSPM Inspector] Error: %v", err)
-		c.JSON(http.StatusOK, gin.H{"findings": []interface{}{}, "total": 0, "error": err.Error()})
+		c.JSON(http.StatusOK, gin.H{"findings": []interface{}{}, "total": 0, "error": "Service unavailable"})
 		return
 	}
 
@@ -400,7 +410,7 @@ func (s *APIServer) handleGetCloudTrailEvents(c *gin.Context) {
 	result, err := client.LookupEvents(input)
 	if err != nil {
 		log.Printf("[CSPM CloudTrail] Error: %v", err)
-		c.JSON(http.StatusOK, gin.H{"events": []interface{}{}, "total": 0, "error": err.Error()})
+		c.JSON(http.StatusOK, gin.H{"events": []interface{}{}, "total": 0, "error": "Service unavailable"})
 		return
 	}
 
@@ -454,7 +464,7 @@ func (s *APIServer) handleGetAWSIntegrationStatus(c *gin.Context) {
 		_, shErr := shClient.DescribeHub(&securityhub.DescribeHubInput{})
 		services["security_hub"] = map[string]interface{}{
 			"enabled": shErr == nil,
-			"error":   fmt.Sprintf("%v", shErr),
+			"error":   cspmErrMsg(shErr, "CSPM AWS Security Hub status"),
 		}
 	} else {
 		services["security_hub"] = map[string]interface{}{"enabled": false, "error": "No AWS session"}
@@ -467,7 +477,7 @@ func (s *APIServer) handleGetAWSIntegrationStatus(c *gin.Context) {
 		hasDetector := gdErr == nil && len(gdResult.DetectorIds) > 0
 		services["guardduty"] = map[string]interface{}{
 			"enabled":   hasDetector,
-			"error":     fmt.Sprintf("%v", gdErr),
+			"error":     cspmErrMsg(gdErr, "CSPM AWS GuardDuty status"),
 			"detectors": len(gdResult.DetectorIds),
 		}
 	} else {
@@ -489,7 +499,7 @@ func (s *APIServer) handleGetAWSIntegrationStatus(c *gin.Context) {
 		}
 		services["inspector"] = map[string]interface{}{
 			"enabled": inspEnabled,
-			"error":   fmt.Sprintf("%v", inspErr),
+			"error":   cspmErrMsg(inspErr, "CSPM AWS Inspector status"),
 		}
 	} else {
 		services["inspector"] = map[string]interface{}{"enabled": false, "error": "No AWS session"}
@@ -506,7 +516,7 @@ func (s *APIServer) handleGetAWSIntegrationStatus(c *gin.Context) {
 		services["config"] = map[string]interface{}{
 			"enabled":     cfgErr == nil,
 			"rules_count": rulesCount,
-			"error":       fmt.Sprintf("%v", cfgErr),
+			"error":       cspmErrMsg(cfgErr, "CSPM AWS Config status"),
 		}
 	} else {
 		services["config"] = map[string]interface{}{"enabled": false, "error": "No AWS session"}
@@ -523,7 +533,7 @@ func (s *APIServer) handleGetAWSIntegrationStatus(c *gin.Context) {
 		services["cloudtrail"] = map[string]interface{}{
 			"enabled":      ctErr == nil,
 			"trails_count": trailCount,
-			"error":        fmt.Sprintf("%v", ctErr),
+			"error":        cspmErrMsg(ctErr, "CSPM AWS CloudTrail status"),
 		}
 	} else {
 		services["cloudtrail"] = map[string]interface{}{"enabled": false, "error": "No AWS session"}
@@ -604,7 +614,7 @@ func (s *APIServer) handleTestAWSConnection(c *gin.Context) {
 	tests = append(tests, map[string]interface{}{
 		"name":    "AWS Session",
 		"success": sessionOK,
-		"error":   fmt.Sprintf("%v", err),
+		"error":   cspmErrMsg(err, "CSPM AWS test session"),
 		"latency": fmt.Sprintf("%dms", time.Since(startTime).Milliseconds()),
 	})
 
@@ -621,7 +631,7 @@ func (s *APIServer) handleTestAWSConnection(c *gin.Context) {
 		tests = append(tests, map[string]interface{}{
 			"name":    "Security Hub",
 			"success": shErr == nil,
-			"error":   fmt.Sprintf("%v", shErr),
+			"error":   cspmErrMsg(shErr, "CSPM AWS test Security Hub"),
 			"latency": fmt.Sprintf("%dms", time.Since(t).Milliseconds()),
 		})
 	}
@@ -634,7 +644,7 @@ func (s *APIServer) handleTestAWSConnection(c *gin.Context) {
 		tests = append(tests, map[string]interface{}{
 			"name":    "GuardDuty",
 			"success": gdErr == nil,
-			"error":   fmt.Sprintf("%v", gdErr),
+			"error":   cspmErrMsg(gdErr, "CSPM AWS test GuardDuty"),
 			"latency": fmt.Sprintf("%dms", time.Since(t).Milliseconds()),
 		})
 	}
@@ -647,7 +657,7 @@ func (s *APIServer) handleTestAWSConnection(c *gin.Context) {
 		tests = append(tests, map[string]interface{}{
 			"name":    "Inspector v2",
 			"success": inspErr == nil,
-			"error":   fmt.Sprintf("%v", inspErr),
+			"error":   cspmErrMsg(inspErr, "CSPM AWS test Inspector"),
 			"latency": fmt.Sprintf("%dms", time.Since(t).Milliseconds()),
 		})
 	}
@@ -660,7 +670,7 @@ func (s *APIServer) handleTestAWSConnection(c *gin.Context) {
 		tests = append(tests, map[string]interface{}{
 			"name":    "AWS Config",
 			"success": cfgErr == nil,
-			"error":   fmt.Sprintf("%v", cfgErr),
+			"error":   cspmErrMsg(cfgErr, "CSPM AWS test Config"),
 			"latency": fmt.Sprintf("%dms", time.Since(t).Milliseconds()),
 		})
 	}
@@ -673,7 +683,7 @@ func (s *APIServer) handleTestAWSConnection(c *gin.Context) {
 		tests = append(tests, map[string]interface{}{
 			"name":    "CloudTrail",
 			"success": ctErr == nil,
-			"error":   fmt.Sprintf("%v", ctErr),
+			"error":   cspmErrMsg(ctErr, "CSPM AWS test CloudTrail"),
 			"latency": fmt.Sprintf("%dms", time.Since(t).Milliseconds()),
 		})
 	}

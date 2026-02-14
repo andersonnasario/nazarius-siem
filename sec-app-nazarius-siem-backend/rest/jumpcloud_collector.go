@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -805,7 +806,8 @@ func (s *APIServer) handleJumpCloudConfig(c *gin.Context) {
 	// POST - Update config
 	var newConfig JumpCloudConfig
 	if err := c.ShouldBindJSON(&newConfig); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] JumpCloud config bind: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -884,7 +886,8 @@ func (s *APIServer) handleJumpCloudTest(c *gin.Context) {
 	client := &http.Client{Timeout: 15 * time.Second}
 	tokenResp, err := client.Do(tokenReq)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"success": false, "error": fmt.Sprintf("OAuth2 token request failed: %v", err)})
+		log.Printf("[ERROR] JumpCloud test OAuth2 token: %v", err)
+		c.JSON(http.StatusOK, gin.H{"success": false, "error": "Connection error"})
 		return
 	}
 	defer tokenResp.Body.Close()
@@ -928,7 +931,8 @@ func (s *APIServer) handleJumpCloudTest(c *gin.Context) {
 
 	resp, err := client.Do(httpReq)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"success": false, "error": fmt.Sprintf("API request failed: %v", err), "step": "directory_insights"})
+		log.Printf("[ERROR] JumpCloud test Directory Insights API: %v", err)
+		c.JSON(http.StatusOK, gin.H{"success": false, "error": "Connection error", "step": "directory_insights"})
 		return
 	}
 	defer resp.Body.Close()
@@ -1051,7 +1055,8 @@ func (s *APIServer) handleJumpCloudEvents(c *gin.Context) {
 	}
 	res, err := req.Do(context.Background(), s.opensearch)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] JumpCloud events search: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 	defer res.Body.Close()
@@ -1137,7 +1142,8 @@ func (s *APIServer) getJumpCloudStats() map[string]interface{} {
 
 	res, err := req.Do(context.Background(), s.opensearch)
 	if err != nil {
-		return map[string]interface{}{"error": err.Error()}
+		log.Printf("[ERROR] JumpCloud stats search: %v", err)
+		return map[string]interface{}{"error": "Internal server error"}
 	}
 	defer res.Body.Close()
 
@@ -1197,8 +1203,9 @@ func (s *APIServer) handleJumpCloudDiagnostic(c *gin.Context) {
 	}
 	token, err := jumpcloudCollector.getAccessToken()
 	if err != nil {
+		log.Printf("[ERROR] JumpCloud diagnostic OAuth2 token: %v", err)
 		tokenTest["success"] = false
-		tokenTest["error"] = err.Error()
+		tokenTest["error"] = "Service unavailable"
 	} else {
 		tokenTest["success"] = true
 		tokenTest["message"] = "OAuth2 access token obtained successfully"
@@ -1230,8 +1237,9 @@ func (s *APIServer) handleJumpCloudDiagnostic(c *gin.Context) {
 		resp, err := client.Do(httpReq)
 
 		if err != nil {
+			log.Printf("[ERROR] JumpCloud diagnostic Directory Insights API: %v", err)
 			apiTest["success"] = false
-			apiTest["error"] = err.Error()
+			apiTest["error"] = "Connection error"
 		} else {
 			respBody, _ := io.ReadAll(resp.Body)
 			resp.Body.Close()
@@ -1262,8 +1270,9 @@ func (s *APIServer) handleJumpCloudDiagnostic(c *gin.Context) {
 		}
 		countRes, err := countReq.Do(context.Background(), s.opensearch)
 		if err != nil {
+			log.Printf("[ERROR] JumpCloud diagnostic OpenSearch index: %v", err)
 			osTest["success"] = false
-			osTest["error"] = err.Error()
+			osTest["error"] = "Service unavailable"
 		} else {
 			defer countRes.Body.Close()
 			var countResult map[string]interface{}

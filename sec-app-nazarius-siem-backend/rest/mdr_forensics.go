@@ -1,9 +1,11 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"sync"
 	"time"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -120,7 +122,8 @@ func (s *APIServer) handleListMDRForensicCases(c *gin.Context) {
 func (s *APIServer) handleCreateMDRForensicCase(c *gin.Context) {
 	var fc MDRForensicCase
 	if err := c.ShouldBindJSON(&fc); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+		log.Printf("[ERROR] handleCreateMDRForensicCase bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Invalid request"})
 		return
 	}
 
@@ -170,7 +173,8 @@ func (s *APIServer) handleListMDRForensicEvidence(c *gin.Context) {
 func (s *APIServer) handleCreateMDRForensicEvidence(c *gin.Context) {
 	var ev MDRForensicEvidence
 	if err := c.ShouldBindJSON(&ev); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+		log.Printf("[ERROR] handleCreateMDRForensicEvidence bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Invalid request"})
 		return
 	}
 

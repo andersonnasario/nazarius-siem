@@ -154,24 +154,31 @@ func (s *APIServer) handleSearchEvents(c *gin.Context) {
 		},
 	}
 
+	// Sanitize sort parameters to prevent injection
+	sortField = validateSortField(sortField)
+	sortOrder = validateSortOrder(sortOrder)
+
 	// Adicionar query string se não for wildcard
 	if query != "*" && query != "" {
+		// Sanitize user input to prevent OpenSearch injection
+		sanitizedQuery := sanitizeSearchQuery(query)
+		queryUpper := strings.ToUpper(strings.TrimSpace(sanitizedQuery))
+
 		// Verificar se é uma busca por CVE (formato: CVE-YYYY-NNNNN)
-		queryUpper := strings.ToUpper(strings.TrimSpace(query))
-		if strings.HasPrefix(queryUpper, "CVE-") {
-			// Busca exata por CVE - usar query_string com frase exata
-			// O formato "\"CVE-XXXX-XXXXX\"" força match de frase exata
+		if strings.HasPrefix(queryUpper, "CVE\\-") || strings.HasPrefix(strings.ToUpper(strings.TrimSpace(query)), "CVE-") {
+			cveClean := sanitizeAlphanumeric(strings.ToUpper(strings.TrimSpace(query)))
 			mustClauses = append(mustClauses, map[string]interface{}{
 				"query_string": map[string]interface{}{
-					"query":            "\"" + queryUpper + "\"",
+					"query":            "\"" + cveClean + "\"",
 					"default_operator": "AND",
 				},
 			})
 		} else {
-			// Busca geral
+			// Busca geral using simple_query_string (safer, no DSL injection possible)
 			mustClauses = append(mustClauses, map[string]interface{}{
-				"query_string": map[string]interface{}{
-					"query": query,
+				"simple_query_string": map[string]interface{}{
+					"query":            sanitizedQuery,
+					"default_operator": "AND",
 				},
 			})
 		}
@@ -330,7 +337,8 @@ func (s *APIServer) handleSearchEvents(c *gin.Context) {
 func (s *APIServer) handleAggregateEvents(c *gin.Context) {
 	var req AggregateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] aggregate events bind: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -494,7 +502,7 @@ func (s *APIServer) handleGetEventStatistics(c *gin.Context) {
 	// Get real statistics from OpenSearch
 	stats, err := s.getOpenSearchEventStatistics(start, end, getAccessScope(c))
 	if err != nil {
-		log.Printf("❌ Failed to get OpenSearch statistics: %v", err)
+		log.Printf("[ERROR] get OpenSearch event statistics: %v", err)
 		// Fallback to empty data if mock is disabled
 		if IsMockDataDisabled() {
 			c.JSON(http.StatusOK, gin.H{
@@ -508,7 +516,7 @@ func (s *APIServer) handleGetEventStatistics(c *gin.Context) {
 				"top_sources":   []interface{}{},
 				"recent_events": []interface{}{},
 				"source":        "opensearch",
-				"error":         err.Error(),
+				"error":         "Service unavailable",
 			})
 			return
 		}
@@ -758,20 +766,23 @@ func (s *APIServer) handleExportEvents(c *gin.Context) {
 			},
 		}
 
-		// Adicionar query string se não for wildcard
+		// Adicionar query string se não for wildcard (sanitized)
 		if query != "*" && query != "" {
-			queryUpper := strings.ToUpper(strings.TrimSpace(query))
-			if strings.HasPrefix(queryUpper, "CVE-") {
+			sanitizedQuery := sanitizeSearchQuery(query)
+			cleanUpper := strings.ToUpper(strings.TrimSpace(query))
+			if strings.HasPrefix(cleanUpper, "CVE-") {
+				cveClean := sanitizeAlphanumeric(cleanUpper)
 				mustClauses = append(mustClauses, map[string]interface{}{
 					"query_string": map[string]interface{}{
-						"query":            "\"" + queryUpper + "\"",
+						"query":            "\"" + cveClean + "\"",
 						"default_operator": "AND",
 					},
 				})
 			} else {
 				mustClauses = append(mustClauses, map[string]interface{}{
-					"query_string": map[string]interface{}{
-						"query": query,
+					"simple_query_string": map[string]interface{}{
+						"query":            sanitizedQuery,
+						"default_operator": "AND",
 					},
 				})
 			}

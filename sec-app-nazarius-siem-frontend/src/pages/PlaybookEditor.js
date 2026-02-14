@@ -157,7 +157,6 @@ const PlaybookEditor = () => {
       })),
     };
 
-    console.log('Salvando playbook:', playbook);
     alert('Playbook salvo com sucesso!');
   };
 

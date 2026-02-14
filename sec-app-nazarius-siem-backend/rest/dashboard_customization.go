@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -22,14 +23,14 @@ type Widget struct {
 
 // WidgetPosition representa a posição de um widget no grid
 type WidgetPosition struct {
-	X      int `json:"x"`
-	Y      int `json:"y"`
-	W      int `json:"w"` // width in grid units
-	H      int `json:"h"` // height in grid units
-	MinW   int `json:"minW,omitempty"`
-	MinH   int `json:"minH,omitempty"`
-	MaxW   int `json:"maxW,omitempty"`
-	MaxH   int `json:"maxH,omitempty"`
+	X      int  `json:"x"`
+	Y      int  `json:"y"`
+	W      int  `json:"w"` // width in grid units
+	H      int  `json:"h"` // height in grid units
+	MinW   int  `json:"minW,omitempty"`
+	MinH   int  `json:"minH,omitempty"`
+	MaxW   int  `json:"maxW,omitempty"`
+	MaxH   int  `json:"maxH,omitempty"`
 	Static bool `json:"static,omitempty"`
 }
 
@@ -59,12 +60,12 @@ type DashboardTemplate struct {
 
 // WidgetType representa um tipo de widget disponível
 type WidgetType struct {
-	Type        string                 `json:"type"`
-	Name        string                 `json:"name"`
-	Description string                 `json:"description"`
-	Icon        string                 `json:"icon"`
-	Category    string                 `json:"category"`
-	DefaultSize WidgetPosition         `json:"default_size"`
+	Type         string                 `json:"type"`
+	Name         string                 `json:"name"`
+	Description  string                 `json:"description"`
+	Icon         string                 `json:"icon"`
+	Category     string                 `json:"category"`
+	DefaultSize  WidgetPosition         `json:"default_size"`
 	ConfigSchema map[string]interface{} `json:"config_schema,omitempty"`
 }
 
@@ -206,9 +207,9 @@ func handleGetDashboard(c *gin.Context) {
 				DataSource: "alerts.active",
 				Position:   WidgetPosition{X: 0, Y: 0, W: 3, H: 2},
 				Config: map[string]interface{}{
-					"value":  127,
-					"trend":  "+12%",
-					"color":  "error",
+					"value": 127,
+					"trend": "+12%",
+					"color": "error",
 				},
 				CreatedAt: time.Now().Add(-24 * time.Hour),
 				UpdatedAt: time.Now(),
@@ -239,7 +240,8 @@ func handleCreateDashboard(c *gin.Context) {
 	var req CustomDashboard
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleCreateDashboard bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -257,7 +259,8 @@ func handleUpdateDashboardCustom(c *gin.Context) {
 
 	var req CustomDashboard
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleUpdateDashboardCustom bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -346,7 +349,8 @@ func handleAddWidget(c *gin.Context) {
 
 	var widget Widget
 	if err := c.ShouldBindJSON(&widget); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] Invalid widget request: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -367,7 +371,8 @@ func handleUpdateWidget(c *gin.Context) {
 
 	var widget Widget
 	if err := c.ShouldBindJSON(&widget); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleUpdateWidget bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -425,8 +430,8 @@ func handleGetWidgetData(c *gin.Context) {
 	case "pie-chart":
 		data = gin.H{
 			"labels": []string{"Critical", "High", "Medium", "Low"},
-			"data":    []int{12, 45, 78, 32},
-			"colors":  []string{"#f44336", "#ff9800", "#ffc107", "#4caf50"},
+			"data":   []int{12, 45, 78, 32},
+			"colors": []string{"#f44336", "#ff9800", "#ffc107", "#4caf50"},
 		}
 
 	case "table":
@@ -496,7 +501,8 @@ func handleImportDashboard(c *gin.Context) {
 	var dashboard CustomDashboard
 
 	if err := c.ShouldBindJSON(&dashboard); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleImportDashboard bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -532,4 +538,3 @@ func handleGetDashboardStats(c *gin.Context) {
 
 	c.JSON(http.StatusOK, stats)
 }
-

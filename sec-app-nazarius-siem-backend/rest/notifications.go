@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -164,7 +165,8 @@ func handleGetNotification(c *gin.Context) {
 func handleCreateNotification(c *gin.Context) {
 	var notif Notification
 	if err := c.BindJSON(&notif); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleCreateNotification bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -286,7 +288,8 @@ func handleListNotificationRules(c *gin.Context) {
 func handleCreateNotificationRule(c *gin.Context) {
 	var rule NotificationRule
 	if err := c.BindJSON(&rule); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleCreateNotificationRule bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -311,7 +314,8 @@ func handleUpdateNotificationRule(c *gin.Context) {
 
 	var updates NotificationRule
 	if err := c.BindJSON(&updates); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleUpdateNotificationRule bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -374,7 +378,8 @@ func handleListNotificationTemplates(c *gin.Context) {
 func handleCreateNotificationTemplate(c *gin.Context) {
 	var template NotificationTemplate
 	if err := c.BindJSON(&template); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleCreateNotificationTemplate bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -421,7 +426,8 @@ func handleListNotificationChannels(c *gin.Context) {
 func handleCreateNotificationChannel(c *gin.Context) {
 	var channel NotificationChannel
 	if err := c.BindJSON(&channel); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleCreateNotificationChannel bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -446,7 +452,8 @@ func handleUpdateNotificationChannel(c *gin.Context) {
 
 	var updates NotificationChannel
 	if err := c.BindJSON(&updates); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleUpdateNotificationChannel bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 

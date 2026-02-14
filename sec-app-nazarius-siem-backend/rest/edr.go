@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -29,46 +30,46 @@ type EDRAgent struct {
 
 // Endpoint represents a monitored endpoint
 type Endpoint struct {
-	ID               string    `json:"id"`
-	AgentID          string    `json:"agent_id"`
-	Hostname         string    `json:"hostname"`
-	IPAddress        string    `json:"ip_address"`
-	MACAddress       string    `json:"mac_address"`
-	OS               string    `json:"os"`
-	Domain           string    `json:"domain"`
-	Users            []string  `json:"users"`
-	RunningProcesses int       `json:"running_processes"`
-	OpenPorts        []int     `json:"open_ports"`
-	InstalledSoftware int      `json:"installed_software"`
-	LastScan         time.Time `json:"last_scan"`
-	RiskScore        int       `json:"risk_score"` // 0-100
-	Compliance       bool      `json:"compliance"`
-	Isolated         bool      `json:"isolated"`
+	ID                string    `json:"id"`
+	AgentID           string    `json:"agent_id"`
+	Hostname          string    `json:"hostname"`
+	IPAddress         string    `json:"ip_address"`
+	MACAddress        string    `json:"mac_address"`
+	OS                string    `json:"os"`
+	Domain            string    `json:"domain"`
+	Users             []string  `json:"users"`
+	RunningProcesses  int       `json:"running_processes"`
+	OpenPorts         []int     `json:"open_ports"`
+	InstalledSoftware int       `json:"installed_software"`
+	LastScan          time.Time `json:"last_scan"`
+	RiskScore         int       `json:"risk_score"` // 0-100
+	Compliance        bool      `json:"compliance"`
+	Isolated          bool      `json:"isolated"`
 }
 
 // EDRThreat represents a detected threat
 type EDRThreat struct {
-	ID               string    `json:"id"`
-	AgentID          string    `json:"agent_id"`
-	Hostname         string    `json:"hostname"`
-	Type             string    `json:"type"` // malware, ransomware, trojan, rootkit, exploit, suspicious_behavior
-	Name             string    `json:"name"`
-	Severity         string    `json:"severity"` // critical, high, medium, low
-	Status           string    `json:"status"` // detected, quarantined, removed, whitelisted
-	FilePath         string    `json:"file_path"`
-	FileHash         string    `json:"file_hash"` // SHA-256
-	ProcessName      string    `json:"process_name"`
-	ProcessID        int       `json:"process_id"`
-	CommandLine      string    `json:"command_line"`
-	ParentProcess    string    `json:"parent_process"`
-	DetectionMethod  string    `json:"detection_method"` // signature, behavior, ml, heuristic
-	MITRETactics     []string  `json:"mitre_tactics"`
-	MITRETechniques  []string  `json:"mitre_techniques"`
-	DetectedAt       time.Time `json:"detected_at"`
-	QuarantinedAt    *time.Time `json:"quarantined_at,omitempty"`
-	RemovedAt        *time.Time `json:"removed_at,omitempty"`
-	ActionTaken      string    `json:"action_taken"` // quarantine, terminate, block, alert
-	ThreatScore      int       `json:"threat_score"` // 0-100
+	ID              string     `json:"id"`
+	AgentID         string     `json:"agent_id"`
+	Hostname        string     `json:"hostname"`
+	Type            string     `json:"type"` // malware, ransomware, trojan, rootkit, exploit, suspicious_behavior
+	Name            string     `json:"name"`
+	Severity        string     `json:"severity"` // critical, high, medium, low
+	Status          string     `json:"status"`   // detected, quarantined, removed, whitelisted
+	FilePath        string     `json:"file_path"`
+	FileHash        string     `json:"file_hash"` // SHA-256
+	ProcessName     string     `json:"process_name"`
+	ProcessID       int        `json:"process_id"`
+	CommandLine     string     `json:"command_line"`
+	ParentProcess   string     `json:"parent_process"`
+	DetectionMethod string     `json:"detection_method"` // signature, behavior, ml, heuristic
+	MITRETactics    []string   `json:"mitre_tactics"`
+	MITRETechniques []string   `json:"mitre_techniques"`
+	DetectedAt      time.Time  `json:"detected_at"`
+	QuarantinedAt   *time.Time `json:"quarantined_at,omitempty"`
+	RemovedAt       *time.Time `json:"removed_at,omitempty"`
+	ActionTaken     string     `json:"action_taken"` // quarantine, terminate, block, alert
+	ThreatScore     int        `json:"threat_score"` // 0-100
 }
 
 // Process represents a running process
@@ -97,82 +98,82 @@ type Process struct {
 
 // MemoryScan represents a memory scan result
 type MemoryScan struct {
-	ID               string    `json:"id"`
-	AgentID          string    `json:"agent_id"`
-	Hostname         string    `json:"hostname"`
-	ScanType         string    `json:"scan_type"` // full, quick, targeted
-	Status           string    `json:"status"` // running, completed, failed
-	StartTime        time.Time `json:"start_time"`
+	ID               string     `json:"id"`
+	AgentID          string     `json:"agent_id"`
+	Hostname         string     `json:"hostname"`
+	ScanType         string     `json:"scan_type"` // full, quick, targeted
+	Status           string     `json:"status"`    // running, completed, failed
+	StartTime        time.Time  `json:"start_time"`
 	EndTime          *time.Time `json:"end_time,omitempty"`
-	Duration         int       `json:"duration"` // seconds
-	ProcessesScanned int       `json:"processes_scanned"`
-	ThreatsFound     int       `json:"threats_found"`
-	SuspiciousItems  int       `json:"suspicious_items"`
-	InjectedCode     int       `json:"injected_code"`
-	HiddenProcesses  int       `json:"hidden_processes"`
-	Findings         []string  `json:"findings"`
+	Duration         int        `json:"duration"` // seconds
+	ProcessesScanned int        `json:"processes_scanned"`
+	ThreatsFound     int        `json:"threats_found"`
+	SuspiciousItems  int        `json:"suspicious_items"`
+	InjectedCode     int        `json:"injected_code"`
+	HiddenProcesses  int        `json:"hidden_processes"`
+	Findings         []string   `json:"findings"`
 }
 
 // ForensicData represents forensic collection
 type ForensicData struct {
-	ID           string    `json:"id"`
-	AgentID      string    `json:"agent_id"`
-	Hostname     string    `json:"hostname"`
-	Type         string    `json:"type"` // memory_dump, disk_image, process_dump, registry_snapshot, event_logs
-	Status       string    `json:"status"` // collecting, collected, uploaded, failed
-	StartTime    time.Time `json:"start_time"`
-	EndTime      *time.Time `json:"end_time,omitempty"`
-	Size         int64     `json:"size"` // bytes
-	Location     string    `json:"location"`
-	Hash         string    `json:"hash"` // SHA-256
-	IncidentID   string    `json:"incident_id,omitempty"`
-	CollectedBy  string    `json:"collected_by"`
-	Notes        string    `json:"notes"`
+	ID          string     `json:"id"`
+	AgentID     string     `json:"agent_id"`
+	Hostname    string     `json:"hostname"`
+	Type        string     `json:"type"`   // memory_dump, disk_image, process_dump, registry_snapshot, event_logs
+	Status      string     `json:"status"` // collecting, collected, uploaded, failed
+	StartTime   time.Time  `json:"start_time"`
+	EndTime     *time.Time `json:"end_time,omitempty"`
+	Size        int64      `json:"size"` // bytes
+	Location    string     `json:"location"`
+	Hash        string     `json:"hash"` // SHA-256
+	IncidentID  string     `json:"incident_id,omitempty"`
+	CollectedBy string     `json:"collected_by"`
+	Notes       string     `json:"notes"`
 }
 
 // IsolationAction represents endpoint isolation
 type IsolationAction struct {
-	ID        string    `json:"id"`
-	AgentID   string    `json:"agent_id"`
-	Hostname  string    `json:"hostname"`
-	Action    string    `json:"action"` // isolate, restore
-	Reason    string    `json:"reason"`
-	Status    string    `json:"status"` // pending, completed, failed
-	InitiatedBy string  `json:"initiated_by"`
-	InitiatedAt time.Time `json:"initiated_at"`
+	ID          string     `json:"id"`
+	AgentID     string     `json:"agent_id"`
+	Hostname    string     `json:"hostname"`
+	Action      string     `json:"action"` // isolate, restore
+	Reason      string     `json:"reason"`
+	Status      string     `json:"status"` // pending, completed, failed
+	InitiatedBy string     `json:"initiated_by"`
+	InitiatedAt time.Time  `json:"initiated_at"`
 	CompletedAt *time.Time `json:"completed_at,omitempty"`
-	Notes       string    `json:"notes"`
+	Notes       string     `json:"notes"`
 }
 
 // EDRDashboard represents dashboard metrics
 type EDRDashboard struct {
-	Overview        EDROverview        `json:"overview"`
-	ThreatTrend     []ThreatTrendPoint `json:"threat_trend"`
-	TopThreats      []ThreatStats      `json:"top_threats"`
-	EndpointHealth  []EndpointHealth   `json:"endpoint_health"`
-	OSDistribution  []OSStats          `json:"os_distribution"`
-	RecentThreats   []EDRThreat        `json:"recent_threats"`
-	CriticalAgents  []EDRAgent         `json:"critical_agents"`
+	Overview       EDROverview        `json:"overview"`
+	ThreatTrend    []ThreatTrendPoint `json:"threat_trend"`
+	TopThreats     []ThreatStats      `json:"top_threats"`
+	EndpointHealth []EndpointHealth   `json:"endpoint_health"`
+	OSDistribution []OSStats          `json:"os_distribution"`
+	RecentThreats  []EDRThreat        `json:"recent_threats"`
+	CriticalAgents []EDRAgent         `json:"critical_agents"`
 }
 
 // EDROverview represents overview metrics
 type EDROverview struct {
-	TotalAgents       int     `json:"total_agents"`
-	OnlineAgents      int     `json:"online_agents"`
-	IsolatedAgents    int     `json:"isolated_agents"`
-	ThreatsDetected   int     `json:"threats_detected"`
-	ThreatsQuarantined int    `json:"threats_quarantined"`
-	ThreatsRemoved    int     `json:"threats_removed"`
-	AvgResponseTime   int     `json:"avg_response_time"` // seconds
-	ComplianceRate    float64 `json:"compliance_rate"`
+	TotalAgents        int     `json:"total_agents"`
+	OnlineAgents       int     `json:"online_agents"`
+	IsolatedAgents     int     `json:"isolated_agents"`
+	ThreatsDetected    int     `json:"threats_detected"`
+	ThreatsQuarantined int     `json:"threats_quarantined"`
+	ThreatsRemoved     int     `json:"threats_removed"`
+	AvgResponseTime    int     `json:"avg_response_time"` // seconds
+	ComplianceRate     float64 `json:"compliance_rate"`
 }
 
 // ThreatTrendPoint represents a point in threat trend
 type ThreatTrendPoint struct {
-	Date       string `json:"date"`
-	Detected   int    `json:"detected"`
-	Quarantined int   `json:"quarantined"`
-	Removed    int    `json:"removed"`
+	Date        string `json:"date"`
+	Detected    int    `json:"detected"`
+	Quarantined int    `json:"quarantined"`
+	Removed     int    `json:"removed"`
 }
 
 // ThreatStats represents threat statistics
@@ -185,15 +186,15 @@ type ThreatStats struct {
 
 // EndpointHealth represents endpoint health metrics
 type EndpointHealth struct {
-	Status string `json:"status"` // healthy, warning, critical, offline
-	Count  int    `json:"count"`
+	Status     string  `json:"status"` // healthy, warning, critical, offline
+	Count      int     `json:"count"`
 	Percentage float64 `json:"percentage"`
 }
 
 // OSStats represents OS distribution
 type OSStats struct {
-	OS    string `json:"os"`
-	Count int    `json:"count"`
+	OS      string `json:"os"`
+	Count   int    `json:"count"`
 	Version string `json:"version"`
 }
 
@@ -220,9 +221,9 @@ func (s *APIServer) handleGetEDRDashboard(c *gin.Context) {
 
 func (s *APIServer) handleGetEDRAgents(c *gin.Context) {
 	status := c.Query("status")
-	
+
 	agents := generateMockEDRAgents()
-	
+
 	// Filter by status
 	if status != "" {
 		filtered := []EDRAgent{}
@@ -233,7 +234,7 @@ func (s *APIServer) handleGetEDRAgents(c *gin.Context) {
 		}
 		agents = filtered
 	}
-	
+
 	c.JSON(http.StatusOK, agents)
 }
 
@@ -246,7 +247,8 @@ func (s *APIServer) handleGetEDRAgent(c *gin.Context) {
 func (s *APIServer) handleDeployAgent(c *gin.Context) {
 	var deployment AgentDeployment
 	if err := c.ShouldBindJSON(&deployment); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleDeployAgent bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -268,9 +270,9 @@ func (s *APIServer) handleDeployAgent(c *gin.Context) {
 func (s *APIServer) handleUninstallAgent(c *gin.Context) {
 	agentID := c.Param("id")
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Agent uninstall initiated",
+		"message":  "Agent uninstall initiated",
 		"agent_id": agentID,
-		"status": "pending",
+		"status":   "pending",
 	})
 }
 
@@ -287,14 +289,15 @@ func (s *APIServer) handleGetEndpoint(c *gin.Context) {
 
 func (s *APIServer) handleIsolateEndpoint(c *gin.Context) {
 	endpointID := c.Param("id")
-	
+
 	var request struct {
 		Reason string `json:"reason"`
 		Notes  string `json:"notes"`
 	}
-	
+
 	if err := c.ShouldBindJSON(&request); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleIsolateEndpoint bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -316,7 +319,7 @@ func (s *APIServer) handleIsolateEndpoint(c *gin.Context) {
 
 func (s *APIServer) handleRestoreEndpoint(c *gin.Context) {
 	endpointID := c.Param("id")
-	
+
 	action := IsolationAction{
 		ID:          fmt.Sprintf("RES-%d", time.Now().Unix()),
 		AgentID:     endpointID,
@@ -336,9 +339,9 @@ func (s *APIServer) handleGetEDRThreats(c *gin.Context) {
 	status := c.Query("status")
 	severity := c.Query("severity")
 	threatType := c.Query("type")
-	
+
 	threats := generateMockEDRThreats()
-	
+
 	// Apply filters
 	if status != "" {
 		filtered := []EDRThreat{}
@@ -349,7 +352,7 @@ func (s *APIServer) handleGetEDRThreats(c *gin.Context) {
 		}
 		threats = filtered
 	}
-	
+
 	if severity != "" {
 		filtered := []EDRThreat{}
 		for _, threat := range threats {
@@ -359,7 +362,7 @@ func (s *APIServer) handleGetEDRThreats(c *gin.Context) {
 		}
 		threats = filtered
 	}
-	
+
 	if threatType != "" {
 		filtered := []EDRThreat{}
 		for _, threat := range threats {
@@ -369,7 +372,7 @@ func (s *APIServer) handleGetEDRThreats(c *gin.Context) {
 		}
 		threats = filtered
 	}
-	
+
 	c.JSON(http.StatusOK, threats)
 }
 
@@ -381,16 +384,17 @@ func (s *APIServer) handleGetEDRThreat(c *gin.Context) {
 
 func (s *APIServer) handleTakeActionOnThreat(c *gin.Context) {
 	threatID := c.Param("id")
-	
+
 	var action ThreatAction
 	if err := c.ShouldBindJSON(&action); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleTakeActionOnThreat bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
 	threat := generateMockEDRThreatDetail(threatID)
 	threat.ActionTaken = action.Action
-	
+
 	switch action.Action {
 	case "quarantine":
 		threat.Status = "quarantined"
@@ -410,9 +414,9 @@ func (s *APIServer) handleTakeActionOnThreat(c *gin.Context) {
 func (s *APIServer) handleGetProcesses(c *gin.Context) {
 	agentID := c.Query("agent_id")
 	suspicious := c.Query("suspicious")
-	
+
 	processes := generateMockProcesses()
-	
+
 	// Filter by agent
 	if agentID != "" {
 		filtered := []Process{}
@@ -423,7 +427,7 @@ func (s *APIServer) handleGetProcesses(c *gin.Context) {
 		}
 		processes = filtered
 	}
-	
+
 	// Filter suspicious
 	if suspicious == "true" {
 		filtered := []Process{}
@@ -434,17 +438,17 @@ func (s *APIServer) handleGetProcesses(c *gin.Context) {
 		}
 		processes = filtered
 	}
-	
+
 	c.JSON(http.StatusOK, processes)
 }
 
 func (s *APIServer) handleTerminateProcess(c *gin.Context) {
 	processID := c.Param("id")
-	
+
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Process termination initiated",
+		"message":    "Process termination initiated",
 		"process_id": processID,
-		"status": "terminated",
+		"status":     "terminated",
 	})
 }
 
@@ -458,9 +462,10 @@ func (s *APIServer) handleInitiateMemoryScan(c *gin.Context) {
 		AgentID  string `json:"agent_id"`
 		ScanType string `json:"scan_type"`
 	}
-	
+
 	if err := c.ShouldBindJSON(&request); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] Invalid EDR request: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -490,9 +495,10 @@ func (s *APIServer) handleCollectForensics(c *gin.Context) {
 		IncidentID string `json:"incident_id,omitempty"`
 		Notes      string `json:"notes"`
 	}
-	
+
 	if err := c.ShouldBindJSON(&request); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleCollectForensics bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -513,17 +519,17 @@ func (s *APIServer) handleCollectForensics(c *gin.Context) {
 
 func (s *APIServer) handleGetEDRStats(c *gin.Context) {
 	stats := gin.H{
-		"total_agents": 342,
-		"online_agents": 318,
-		"offline_agents": 24,
-		"isolated_agents": 5,
-		"threats_detected_today": 47,
+		"total_agents":              342,
+		"online_agents":             318,
+		"offline_agents":            24,
+		"isolated_agents":           5,
+		"threats_detected_today":    47,
 		"threats_quarantined_today": 42,
-		"threats_removed_today": 38,
-		"avg_response_time": 45,
-		"compliance_rate": 96.8,
-		"memory_scans_today": 89,
-		"forensic_collections": 12,
+		"threats_removed_today":     38,
+		"avg_response_time":         45,
+		"compliance_rate":           96.8,
+		"memory_scans_today":        89,
+		"forensic_collections":      12,
 	}
 	c.JSON(http.StatusOK, stats)
 }
@@ -533,14 +539,14 @@ func (s *APIServer) handleGetEDRStats(c *gin.Context) {
 func generateMockEDRDashboard() EDRDashboard {
 	return EDRDashboard{
 		Overview: EDROverview{
-			TotalAgents:       342,
-			OnlineAgents:      318,
-			IsolatedAgents:    5,
-			ThreatsDetected:   1847,
+			TotalAgents:        342,
+			OnlineAgents:       318,
+			IsolatedAgents:     5,
+			ThreatsDetected:    1847,
 			ThreatsQuarantined: 1523,
-			ThreatsRemoved:    1289,
-			AvgResponseTime:   45,
-			ComplianceRate:    96.8,
+			ThreatsRemoved:     1289,
+			AvgResponseTime:    45,
+			ComplianceRate:     96.8,
 		},
 		ThreatTrend: []ThreatTrendPoint{
 			{Date: "2025-11-01", Detected: 42, Quarantined: 38, Removed: 35},
@@ -706,55 +712,55 @@ func generateMockCriticalAgents() []EDRAgent {
 func generateMockEndpoints() []Endpoint {
 	endpoints := []Endpoint{
 		{
-			ID:               "EP-001",
-			AgentID:          "AGENT-001",
-			Hostname:         "DC-01.corp.local",
-			IPAddress:        "192.168.1.10",
-			MACAddress:       "00:1A:2B:3C:4D:5E",
-			OS:               "Windows Server 2019",
-			Domain:           "corp.local",
-			Users:            []string{"Administrator", "BackupUser"},
-			RunningProcesses: 145,
-			OpenPorts:        []int{53, 88, 135, 389, 445, 3389},
+			ID:                "EP-001",
+			AgentID:           "AGENT-001",
+			Hostname:          "DC-01.corp.local",
+			IPAddress:         "192.168.1.10",
+			MACAddress:        "00:1A:2B:3C:4D:5E",
+			OS:                "Windows Server 2019",
+			Domain:            "corp.local",
+			Users:             []string{"Administrator", "BackupUser"},
+			RunningProcesses:  145,
+			OpenPorts:         []int{53, 88, 135, 389, 445, 3389},
 			InstalledSoftware: 89,
-			LastScan:         time.Now().Add(-2 * time.Hour),
-			RiskScore:        78,
-			Compliance:       true,
-			Isolated:         false,
+			LastScan:          time.Now().Add(-2 * time.Hour),
+			RiskScore:         78,
+			Compliance:        true,
+			Isolated:          false,
 		},
 		{
-			ID:               "EP-002",
-			AgentID:          "AGENT-002",
-			Hostname:         "WEB-SERVER-01",
-			IPAddress:        "192.168.1.20",
-			MACAddress:       "00:1B:2C:3D:4E:5F",
-			OS:               "Ubuntu 22.04 LTS",
-			Domain:           "corp.local",
-			Users:            []string{"webadmin", "www-data"},
-			RunningProcesses: 98,
-			OpenPorts:        []int{22, 80, 443},
+			ID:                "EP-002",
+			AgentID:           "AGENT-002",
+			Hostname:          "WEB-SERVER-01",
+			IPAddress:         "192.168.1.20",
+			MACAddress:        "00:1B:2C:3D:4E:5F",
+			OS:                "Ubuntu 22.04 LTS",
+			Domain:            "corp.local",
+			Users:             []string{"webadmin", "www-data"},
+			RunningProcesses:  98,
+			OpenPorts:         []int{22, 80, 443},
 			InstalledSoftware: 156,
-			LastScan:         time.Now().Add(-1 * time.Hour),
-			RiskScore:        45,
-			Compliance:       true,
-			Isolated:         false,
+			LastScan:          time.Now().Add(-1 * time.Hour),
+			RiskScore:         45,
+			Compliance:        true,
+			Isolated:          false,
 		},
 		{
-			ID:               "EP-003",
-			AgentID:          "AGENT-003",
-			Hostname:         "DB-SERVER-01",
-			IPAddress:        "192.168.1.30",
-			MACAddress:       "00:1C:2D:3E:4F:60",
-			OS:               "Windows Server 2022",
-			Domain:           "corp.local",
-			Users:            []string{"dbadmin", "sqlservice"},
-			RunningProcesses: 132,
-			OpenPorts:        []int{1433, 3389},
+			ID:                "EP-003",
+			AgentID:           "AGENT-003",
+			Hostname:          "DB-SERVER-01",
+			IPAddress:         "192.168.1.30",
+			MACAddress:        "00:1C:2D:3E:4F:60",
+			OS:                "Windows Server 2022",
+			Domain:            "corp.local",
+			Users:             []string{"dbadmin", "sqlservice"},
+			RunningProcesses:  132,
+			OpenPorts:         []int{1433, 3389},
 			InstalledSoftware: 72,
-			LastScan:         time.Now().Add(-3 * time.Hour),
-			RiskScore:        92,
-			Compliance:       false,
-			Isolated:         true,
+			LastScan:          time.Now().Add(-3 * time.Hour),
+			RiskScore:         92,
+			Compliance:        false,
+			Isolated:          true,
 		},
 	}
 
@@ -1071,4 +1077,3 @@ func generateMockForensics() []ForensicData {
 
 	return forensics
 }
-

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -20,36 +21,36 @@ const (
 type RemediationStatus string
 
 const (
-	RemediationStatusPending   RemediationStatus = "pending"
-	RemediationStatusApproved  RemediationStatus = "approved"
-	RemediationStatusRejected  RemediationStatus = "rejected"
-	RemediationStatusRunning   RemediationStatus = "running"
-	RemediationStatusCompleted RemediationStatus = "completed"
-	RemediationStatusFailed    RemediationStatus = "failed"
+	RemediationStatusPending    RemediationStatus = "pending"
+	RemediationStatusApproved   RemediationStatus = "approved"
+	RemediationStatusRejected   RemediationStatus = "rejected"
+	RemediationStatusRunning    RemediationStatus = "running"
+	RemediationStatusCompleted  RemediationStatus = "completed"
+	RemediationStatusFailed     RemediationStatus = "failed"
 	RemediationStatusRolledBack RemediationStatus = "rolled_back"
 )
 
 // Auto-Remediation Rule
 type AutoRemediationRule struct {
-	ID              string          `json:"id"`
-	Name            string          `json:"name"`
-	Description     string          `json:"description"`
-	FindingType     string          `json:"finding_type"` // S3_PUBLIC_ACCESS, UNENCRYPTED_EBS, etc
-	Severity        []string        `json:"severity"`     // critical, high, medium, low
-	AutoApprove     bool            `json:"auto_approve"`
-	Enabled         bool            `json:"enabled"`
+	ID              string              `json:"id"`
+	Name            string              `json:"name"`
+	Description     string              `json:"description"`
+	FindingType     string              `json:"finding_type"` // S3_PUBLIC_ACCESS, UNENCRYPTED_EBS, etc
+	Severity        []string            `json:"severity"`     // critical, high, medium, low
+	AutoApprove     bool                `json:"auto_approve"`
+	Enabled         bool                `json:"enabled"`
 	Actions         []RemediationAction `json:"actions"`
 	RollbackActions []RemediationAction `json:"rollback_actions"`
-	MaxRetries      int             `json:"max_retries"`
-	NotifyChannels  []string        `json:"notify_channels"` // slack, email, pagerduty
-	CreatedAt       time.Time       `json:"created_at"`
-	UpdatedAt       time.Time       `json:"updated_at"`
-	CreatedBy       string          `json:"created_by"`
+	MaxRetries      int                 `json:"max_retries"`
+	NotifyChannels  []string            `json:"notify_channels"` // slack, email, pagerduty
+	CreatedAt       time.Time           `json:"created_at"`
+	UpdatedAt       time.Time           `json:"updated_at"`
+	CreatedBy       string              `json:"created_by"`
 }
 
 // Remediation Action
 type RemediationAction struct {
-	Type            string                 `json:"type"` // aws_api, aws_lambda, aws_ssm, script
+	Type            string                 `json:"type"`   // aws_api, aws_lambda, aws_ssm, script
 	Target          string                 `json:"target"` // API endpoint, Lambda ARN, SSM Document
 	Parameters      map[string]interface{} `json:"parameters"`
 	Timeout         int                    `json:"timeout"` // seconds
@@ -59,41 +60,41 @@ type RemediationAction struct {
 
 // Remediation Execution
 type RemediationExecution struct {
-	ID              string            `json:"id"`
-	RuleID          string            `json:"rule_id"`
-	RuleName        string            `json:"rule_name"`
-	FindingID       string            `json:"finding_id"`
-	FindingTitle    string            `json:"finding_title"`
-	ResourceID      string            `json:"resource_id"`
-	ResourceType    string            `json:"resource_type"`
-	Status          RemediationStatus `json:"status"`
-	Type            RemediationType   `json:"type"`
-	RequiresApproval bool             `json:"requires_approval"`
-	ApprovalRequest *RemediationApprovalRequest  `json:"approval_request,omitempty"`
-	ImpactAnalysis  ImpactAnalysis    `json:"impact_analysis"`
-	Actions         []ActionExecution `json:"actions"`
-	StartedAt       *time.Time        `json:"started_at,omitempty"`
-	CompletedAt     *time.Time        `json:"completed_at,omitempty"`
-	Duration        int               `json:"duration"` // seconds
-	Result          string            `json:"result"`
-	ErrorMessage    string            `json:"error_message,omitempty"`
-	RollbackAvailable bool            `json:"rollback_available"`
-	RolledBack      bool              `json:"rolled_back"`
-	CreatedAt       time.Time         `json:"created_at"`
-	CreatedBy       string            `json:"created_by"`
+	ID                string                      `json:"id"`
+	RuleID            string                      `json:"rule_id"`
+	RuleName          string                      `json:"rule_name"`
+	FindingID         string                      `json:"finding_id"`
+	FindingTitle      string                      `json:"finding_title"`
+	ResourceID        string                      `json:"resource_id"`
+	ResourceType      string                      `json:"resource_type"`
+	Status            RemediationStatus           `json:"status"`
+	Type              RemediationType             `json:"type"`
+	RequiresApproval  bool                        `json:"requires_approval"`
+	ApprovalRequest   *RemediationApprovalRequest `json:"approval_request,omitempty"`
+	ImpactAnalysis    ImpactAnalysis              `json:"impact_analysis"`
+	Actions           []ActionExecution           `json:"actions"`
+	StartedAt         *time.Time                  `json:"started_at,omitempty"`
+	CompletedAt       *time.Time                  `json:"completed_at,omitempty"`
+	Duration          int                         `json:"duration"` // seconds
+	Result            string                      `json:"result"`
+	ErrorMessage      string                      `json:"error_message,omitempty"`
+	RollbackAvailable bool                        `json:"rollback_available"`
+	RolledBack        bool                        `json:"rolled_back"`
+	CreatedAt         time.Time                   `json:"created_at"`
+	CreatedBy         string                      `json:"created_by"`
 }
 
 // Action Execution
 type ActionExecution struct {
-	ActionType      string                 `json:"action_type"`
-	Target          string                 `json:"target"`
-	Status          string                 `json:"status"` // pending, running, completed, failed
-	StartedAt       *time.Time             `json:"started_at,omitempty"`
-	CompletedAt     *time.Time             `json:"completed_at,omitempty"`
-	Duration        int                    `json:"duration"` // seconds
-	Result          string                 `json:"result"`
-	ErrorMessage    string                 `json:"error_message,omitempty"`
-	Output          map[string]interface{} `json:"output,omitempty"`
+	ActionType   string                 `json:"action_type"`
+	Target       string                 `json:"target"`
+	Status       string                 `json:"status"` // pending, running, completed, failed
+	StartedAt    *time.Time             `json:"started_at,omitempty"`
+	CompletedAt  *time.Time             `json:"completed_at,omitempty"`
+	Duration     int                    `json:"duration"` // seconds
+	Result       string                 `json:"result"`
+	ErrorMessage string                 `json:"error_message,omitempty"`
+	Output       map[string]interface{} `json:"output,omitempty"`
 }
 
 // Remediation Approval Request
@@ -102,7 +103,7 @@ type RemediationApprovalRequest struct {
 	ExecutionID     string            `json:"execution_id"`
 	RequestedBy     string            `json:"requested_by"`
 	RequestedAt     time.Time         `json:"requested_at"`
-	Status          string            `json:"status"` // pending, approved, rejected, expired
+	Status          string            `json:"status"`    // pending, approved, rejected, expired
 	Approvers       []string          `json:"approvers"` // list of user IDs who can approve
 	ApprovedBy      string            `json:"approved_by,omitempty"`
 	ApprovedAt      *time.Time        `json:"approved_at,omitempty"`
@@ -123,40 +124,40 @@ type ApprovalComment struct {
 
 // Impact Analysis
 type ImpactAnalysis struct {
-	DowntimeExpected    bool     `json:"downtime_expected"`
-	DowntimeDuration    int      `json:"downtime_duration"` // minutes
-	AffectedResources   []string `json:"affected_resources"`
-	AffectedUsers       []string `json:"affected_users"`
-	AffectedServices    []string `json:"affected_services"`
-	RiskLevel           string   `json:"risk_level"` // low, medium, high, critical
-	BusinessImpact      string   `json:"business_impact"`
-	RollbackAvailable   bool     `json:"rollback_available"`
-	RollbackDuration    int      `json:"rollback_duration"` // minutes
-	EstimatedCost       float64  `json:"estimated_cost"` // USD
-	ComplianceImpact    string   `json:"compliance_impact"`
+	DowntimeExpected  bool     `json:"downtime_expected"`
+	DowntimeDuration  int      `json:"downtime_duration"` // minutes
+	AffectedResources []string `json:"affected_resources"`
+	AffectedUsers     []string `json:"affected_users"`
+	AffectedServices  []string `json:"affected_services"`
+	RiskLevel         string   `json:"risk_level"` // low, medium, high, critical
+	BusinessImpact    string   `json:"business_impact"`
+	RollbackAvailable bool     `json:"rollback_available"`
+	RollbackDuration  int      `json:"rollback_duration"` // minutes
+	EstimatedCost     float64  `json:"estimated_cost"`    // USD
+	ComplianceImpact  string   `json:"compliance_impact"`
 }
 
 // Remediation Statistics
 type RemediationStatistics struct {
-	TotalExecutions     int     `json:"total_executions"`
-	SuccessfulExecutions int    `json:"successful_executions"`
-	FailedExecutions    int     `json:"failed_executions"`
-	PendingApprovals    int     `json:"pending_approvals"`
-	AutoApproved        int     `json:"auto_approved"`
-	ManualApproved      int     `json:"manual_approved"`
-	Rejected            int     `json:"rejected"`
-	RolledBack          int     `json:"rolled_back"`
-	SuccessRate         float64 `json:"success_rate"`
-	AvgExecutionTime    int     `json:"avg_execution_time"` // seconds
-	TotalTimeSaved      int     `json:"total_time_saved"` // hours
+	TotalExecutions      int     `json:"total_executions"`
+	SuccessfulExecutions int     `json:"successful_executions"`
+	FailedExecutions     int     `json:"failed_executions"`
+	PendingApprovals     int     `json:"pending_approvals"`
+	AutoApproved         int     `json:"auto_approved"`
+	ManualApproved       int     `json:"manual_approved"`
+	Rejected             int     `json:"rejected"`
+	RolledBack           int     `json:"rolled_back"`
+	SuccessRate          float64 `json:"success_rate"`
+	AvgExecutionTime     int     `json:"avg_execution_time"` // seconds
+	TotalTimeSaved       int     `json:"total_time_saved"`   // hours
 }
 
 // Global remediation state
 var (
-	remediationMutex    sync.RWMutex
-	remediationRules    []AutoRemediationRule
+	remediationMutex      sync.RWMutex
+	remediationRules      []AutoRemediationRule
 	remediationExecutions []RemediationExecution
-	remediationApprovals    []RemediationApprovalRequest
+	remediationApprovals  []RemediationApprovalRequest
 )
 
 // Initialize auto-remediation system
@@ -329,11 +330,11 @@ func initAutoRemediation() {
 				},
 			},
 			RollbackActions: []RemediationAction{},
-			MaxRetries:     2,
-			NotifyChannels: []string{"email"},
-			CreatedAt:      time.Now().Add(-15 * 24 * time.Hour),
-			UpdatedAt:      time.Now().Add(-2 * 24 * time.Hour),
-			CreatedBy:      "security-team@company.com",
+			MaxRetries:      2,
+			NotifyChannels:  []string{"email"},
+			CreatedAt:       time.Now().Add(-15 * 24 * time.Hour),
+			UpdatedAt:       time.Now().Add(-2 * 24 * time.Hour),
+			CreatedBy:       "security-team@company.com",
 		},
 		{
 			ID:          "rule-005",
@@ -405,11 +406,11 @@ func initAutoRemediation() {
 					Type:   "aws_api",
 					Target: "cloudtrail:CreateTrail",
 					Parameters: map[string]interface{}{
-						"Name":                  "default-trail",
-						"S3BucketName":          "cloudtrail-logs-{{AccountId}}",
+						"Name":                       "default-trail",
+						"S3BucketName":               "cloudtrail-logs-{{AccountId}}",
 						"IncludeGlobalServiceEvents": true,
-						"IsMultiRegionTrail":    true,
-						"EnableLogFileValidation": true,
+						"IsMultiRegionTrail":         true,
+						"EnableLogFileValidation":    true,
 					},
 					Timeout:         120,
 					SuccessCriteria: "Trail.IsLogging == true",
@@ -427,11 +428,11 @@ func initAutoRemediation() {
 				},
 			},
 			RollbackActions: []RemediationAction{},
-			MaxRetries:     3,
-			NotifyChannels: []string{"slack", "email"},
-			CreatedAt:      time.Now().Add(-5 * 24 * time.Hour),
-			UpdatedAt:      time.Now(),
-			CreatedBy:      "compliance-team@company.com",
+			MaxRetries:      3,
+			NotifyChannels:  []string{"slack", "email"},
+			CreatedAt:       time.Now().Add(-5 * 24 * time.Hour),
+			UpdatedAt:       time.Now(),
+			CreatedBy:       "compliance-team@company.com",
 		},
 		{
 			ID:          "rule-007",
@@ -465,11 +466,11 @@ func initAutoRemediation() {
 				},
 			},
 			RollbackActions: []RemediationAction{},
-			MaxRetries:     3,
-			NotifyChannels: []string{"slack", "email", "pagerduty"},
-			CreatedAt:      time.Now().Add(-3 * 24 * time.Hour),
-			UpdatedAt:      time.Now(),
-			CreatedBy:      "security-team@company.com",
+			MaxRetries:      3,
+			NotifyChannels:  []string{"slack", "email", "pagerduty"},
+			CreatedAt:       time.Now().Add(-3 * 24 * time.Hour),
+			UpdatedAt:       time.Now(),
+			CreatedBy:       "security-team@company.com",
 		},
 	}
 
@@ -477,18 +478,18 @@ func initAutoRemediation() {
 	now := time.Now()
 	startTime1 := now.Add(-2 * time.Hour)
 	completeTime1 := now.Add(-1*time.Hour - 45*time.Minute)
-	
+
 	remediationExecutions = []RemediationExecution{
 		{
-			ID:           "exec-001",
-			RuleID:       "rule-001",
-			RuleName:     "Block S3 Bucket Public Access",
-			FindingID:    "find-001",
-			FindingTitle: "S3 Bucket Publicly Accessible",
-			ResourceID:   "arn:aws:s3:::my-public-bucket",
-			ResourceType: "AWS::S3::Bucket",
-			Status:       RemediationStatusCompleted,
-			Type:         RemediationTypeAutomatic,
+			ID:               "exec-001",
+			RuleID:           "rule-001",
+			RuleName:         "Block S3 Bucket Public Access",
+			FindingID:        "find-001",
+			FindingTitle:     "S3 Bucket Publicly Accessible",
+			ResourceID:       "arn:aws:s3:::my-public-bucket",
+			ResourceType:     "AWS::S3::Bucket",
+			Status:           RemediationStatusCompleted,
+			Type:             RemediationTypeAutomatic,
 			RequiresApproval: false,
 			ImpactAnalysis: ImpactAnalysis{
 				DowntimeExpected:  false,
@@ -565,7 +566,7 @@ func (s *APIServer) handleListRemediationRules(c *gin.Context) {
 // Handler: Get remediation rule by ID
 func (s *APIServer) handleGetRemediationRule(c *gin.Context) {
 	id := c.Param("id")
-	
+
 	remediationMutex.RLock()
 	defer remediationMutex.RUnlock()
 
@@ -600,7 +601,7 @@ func (s *APIServer) handleListRemediationExecutions(c *gin.Context) {
 // Handler: Get remediation execution by ID
 func (s *APIServer) handleGetRemediationExecution(c *gin.Context) {
 	id := c.Param("id")
-	
+
 	remediationMutex.RLock()
 	defer remediationMutex.RUnlock()
 
@@ -635,14 +636,15 @@ func (s *APIServer) handleListApprovalRequests(c *gin.Context) {
 // Handler: Approve remediation
 func (s *APIServer) handleApproveRemediation(c *gin.Context) {
 	id := c.Param("id")
-	
+
 	var req struct {
 		ApprovedBy string `json:"approved_by"`
 		Comment    string `json:"comment"`
 	}
-	
+
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] Invalid remediation approval request: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -656,7 +658,7 @@ func (s *APIServer) handleApproveRemediation(c *gin.Context) {
 			remediationApprovals[i].Status = "approved"
 			remediationApprovals[i].ApprovedBy = req.ApprovedBy
 			remediationApprovals[i].ApprovedAt = &now
-			
+
 			if req.Comment != "" {
 				remediationApprovals[i].Comments = append(remediationApprovals[i].Comments, ApprovalComment{
 					UserID:    req.ApprovedBy,
@@ -684,14 +686,15 @@ func (s *APIServer) handleApproveRemediation(c *gin.Context) {
 // Handler: Reject remediation
 func (s *APIServer) handleRejectRemediation(c *gin.Context) {
 	id := c.Param("id")
-	
+
 	var req struct {
 		RejectedBy string `json:"rejected_by"`
 		Reason     string `json:"reason"`
 	}
-	
+
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleRejectRemediation bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -819,4 +822,3 @@ func (s *APIServer) handleGetRemediationStatistics(c *gin.Context) {
 		"data":    stats,
 	})
 }
-

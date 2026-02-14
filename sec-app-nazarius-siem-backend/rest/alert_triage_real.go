@@ -225,9 +225,10 @@ func (s *APIServer) handleTriageAlertAction(c *gin.Context) {
 
 	var req TriageActionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Printf("[ERROR] handleTriageAlertAction bind JSON: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"error":   err.Error(),
+			"error":   "Invalid request",
 		})
 		return
 	}
@@ -358,9 +359,10 @@ func (s *APIServer) handleBulkTriageAction(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Printf("[ERROR] handleBulkTriageAction bind JSON: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"error":   err.Error(),
+			"error":   "Invalid request",
 		})
 		return
 	}

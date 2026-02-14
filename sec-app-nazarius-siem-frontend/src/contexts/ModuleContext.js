@@ -37,7 +37,6 @@ export const ModuleProvider = ({ children }) => {
         }
         
         setEnabledModules(activeModules);
-        console.log('✅ Modules loaded:', activeModules.length, 'active');
       }
     } catch (error) {
       console.error('Error loading modules:', error);
@@ -67,7 +66,6 @@ export const ModuleProvider = ({ children }) => {
 
   // Forçar atualização dos módulos
   const refreshModules = useCallback(async () => {
-    console.log('🔄 Refreshing modules...');
     await loadModules();
     setLastUpdate(Date.now());
   }, [loadModules]);

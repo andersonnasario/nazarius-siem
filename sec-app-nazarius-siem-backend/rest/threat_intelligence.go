@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -405,7 +406,8 @@ func (s *APIServer) handleCreateIOC(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] create IOC bind: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -466,7 +468,8 @@ func (s *APIServer) handleUpdateIOC(c *gin.Context) {
 
 	var updates map[string]interface{}
 	if err := c.ShouldBindJSON(&updates); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] update IOC bind: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -565,7 +568,7 @@ func (s *APIServer) handleGetIOCRelatedEvents(c *gin.Context) {
 					{"match_phrase": map[string]interface{}{"query": iocValue}},
 					{
 						"query_string": map[string]interface{}{
-							"query":            "\"" + iocValue + "\"",
+							"query":            "\"" + sanitizeSearchQuery(iocValue) + "\"",
 							"default_operator": "AND",
 						},
 					},
@@ -608,10 +611,11 @@ func (s *APIServer) handleGetIOCRelatedEvents(c *gin.Context) {
 		s.opensearch.Search.WithIgnoreUnavailable(true),
 	)
 	if err != nil {
+		log.Printf("[ERROR] get IOC related events search: %v", err)
 		c.JSON(http.StatusOK, gin.H{
 			"events": []interface{}{},
 			"total":  0,
-			"error":  err.Error(),
+			"error":  "Connection error",
 			"source": "error",
 		})
 		return

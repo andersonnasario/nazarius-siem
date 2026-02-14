@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"strconv"
+	"strings"
 )
 
 type Config struct {
@@ -32,29 +33,38 @@ type Config struct {
 
 func loadConfig() *Config {
 	config := &Config{}
-	
+
 	// Server
 	config.Server.Address = getEnv("SERVER_ADDRESS", ":8080")
-	
+
 	// Elasticsearch / OpenSearch
 	config.Elasticsearch.Hosts = []string{getEnv("ELASTICSEARCH_HOST", "http://elasticsearch:9200")}
 	config.Elasticsearch.IndexPattern = getEnv("ELASTICSEARCH_INDEX", "siem-*")
 	config.Elasticsearch.Username = getEnv("ELASTICSEARCH_USERNAME", "")
 	config.Elasticsearch.Password = getEnv("ELASTICSEARCH_PASSWORD", "")
 	config.Elasticsearch.UseTLS = getBoolEnv("ELASTICSEARCH_USE_TLS", false) // Enable for AWS OpenSearch
-	
+
 	// Redis
 	config.Redis.Address = getEnv("REDIS_ADDRESS", "redis:6379")
 	config.Redis.Password = getEnv("REDIS_PASSWORD", "")
 	config.Redis.DB = 0
 	config.Redis.UseTLS = getBoolEnv("REDIS_USE_TLS", false) // Enable for AWS ElastiCache
-	
-	// JWT
-	config.JWT.Secret = getEnv("JWT_SECRET", "your-secret-key-change-this-in-production")
-	
-	// CORS
-	config.CORS.AllowOrigins = []string{getEnv("CORS_ORIGINS", "*")}
-	
+
+	// JWT - secret is mandatory and must be at least 32 characters
+	config.JWT.Secret = os.Getenv("JWT_SECRET")
+
+	// CORS - split comma-separated origins
+	corsOrigins := getEnv("CORS_ORIGINS", "")
+	if corsOrigins != "" {
+		origins := strings.Split(corsOrigins, ",")
+		for i, o := range origins {
+			origins[i] = strings.TrimSpace(o)
+		}
+		config.CORS.AllowOrigins = origins
+	} else {
+		config.CORS.AllowOrigins = []string{}
+	}
+
 	return config
 }
 

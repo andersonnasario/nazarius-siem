@@ -1,9 +1,11 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"sync"
 	"time"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -201,7 +203,8 @@ func (s *APIServer) handleListHoneypots(c *gin.Context) {
 func (s *APIServer) handleCreateHoneypot(c *gin.Context) {
 	var hp Honeypot
 	if err := c.ShouldBindJSON(&hp); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+		log.Printf("[ERROR] handleCreateHoneypot bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Invalid request"})
 		return
 	}
 
@@ -231,7 +234,8 @@ func (s *APIServer) handleListHoneytokens(c *gin.Context) {
 func (s *APIServer) handleCreateHoneytoken(c *gin.Context) {
 	var token Honeytoken
 	if err := c.ShouldBindJSON(&token); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": err.Error()})
+		log.Printf("[ERROR] handleCreateHoneytoken bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "error": "Invalid request"})
 		return
 	}
 

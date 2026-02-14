@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -76,8 +77,8 @@ func RateLimitMiddleware(limiter *RateLimiter) gin.HandlerFunc {
 		// Check if request is allowed
 		if !l.Allow() {
 			c.JSON(http.StatusTooManyRequests, gin.H{
-				"error":   "Rate limit exceeded",
-				"message": "Too many requests. Please try again later.",
+				"error":       "Rate limit exceeded",
+				"message":     "Too many requests. Please try again later.",
 				"retry_after": "60s",
 			})
 			c.Abort()
@@ -88,25 +89,10 @@ func RateLimitMiddleware(limiter *RateLimiter) gin.HandlerFunc {
 	}
 }
 
-// getClientIP extracts the real client IP from the request
+// getClientIP extracts the real client IP using Gin's trusted proxy mechanism.
+// This delegates IP extraction to Gin, which only trusts X-Forwarded-For / X-Real-IP
+// from configured trusted proxies (set via TRUSTED_PROXIES env or gin.SetTrustedProxies).
 func getClientIP(c *gin.Context) string {
-	// Check X-Forwarded-For header
-	forwarded := c.GetHeader("X-Forwarded-For")
-	if forwarded != "" {
-		// Get the first IP in the list
-		ips := strings.Split(forwarded, ",")
-		if len(ips) > 0 {
-			return strings.TrimSpace(ips[0])
-		}
-	}
-
-	// Check X-Real-IP header
-	realIP := c.GetHeader("X-Real-IP")
-	if realIP != "" {
-		return realIP
-	}
-
-	// Fall back to remote address
 	return c.ClientIP()
 }
 
@@ -126,20 +112,33 @@ func SecurityHeadersMiddleware() gin.HandlerFunc {
 		c.Header("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
 
 		// Content Security Policy
+		// CSP: 'unsafe-inline' is required for style-src due to MUI/Material-UI inline styles.
+		// script-src uses 'self' only (no unsafe-inline/unsafe-eval) for XSS protection.
+		// Note: If React/webpack require 'unsafe-eval' for development, set CSP_UNSAFE_EVAL=true.
+		scriptSrc := "script-src 'self'"
+		if os.Getenv("CSP_UNSAFE_EVAL") == "true" {
+			scriptSrc = "script-src 'self' 'unsafe-eval'"
+		}
 		csp := "default-src 'self'; " +
-			"script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+			scriptSrc + "; " +
 			"style-src 'self' 'unsafe-inline'; " +
 			"img-src 'self' data: https:; " +
 			"font-src 'self' data:; " +
-			"connect-src 'self'; " +
-			"frame-ancestors 'none'"
+			"connect-src 'self' " + os.Getenv("CORS_ORIGINS") + "; " +
+			"frame-ancestors 'none'; " +
+			"base-uri 'self'; " +
+			"form-action 'self'; " +
+			"object-src 'none'"
 		c.Header("Content-Security-Policy", csp)
+
+		// HSTS - enforce HTTPS (max-age 1 year, include subdomains)
+		c.Header("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
 
 		// Referrer Policy
 		c.Header("Referrer-Policy", "strict-origin-when-cross-origin")
 
 		// Permissions Policy (formerly Feature Policy)
-		c.Header("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+		c.Header("Permissions-Policy", "geolocation=(), microphone=(), camera=(), payment=(), usb=()")
 
 		// Remove server header
 		c.Header("Server", "")
@@ -148,26 +147,37 @@ func SecurityHeadersMiddleware() gin.HandlerFunc {
 	}
 }
 
-// CORSMiddleware configures CORS with security best practices
+// CORSMiddleware configures CORS with security best practices.
+// Only origins in the allowedOrigins list are permitted.
+// If the list is empty, CORS headers are not set (blocks cross-origin requests).
 func CORSMiddleware(allowedOrigins []string) gin.HandlerFunc {
+	// Build a set for O(1) lookup
+	originSet := make(map[string]bool, len(allowedOrigins))
+	for _, o := range allowedOrigins {
+		originSet[strings.TrimSpace(o)] = true
+	}
+
 	return func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
-		
-		// Always set CORS headers for development
-		if origin != "" {
+
+		// Only set CORS headers if the origin is in the allowed list
+		if origin != "" && originSet[origin] {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
-		} else {
-			c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+			c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+			c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+			c.Writer.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Requested-With, Accept, Origin, Cache-Control")
+			c.Writer.Header().Set("Access-Control-Max-Age", "86400") // 24 hours
+			c.Writer.Header().Set("Vary", "Origin")
 		}
-		
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Requested-With, Accept, Origin, Cache-Control")
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		c.Writer.Header().Set("Access-Control-Max-Age", "86400") // 24 hours
+		// If origin is not allowed, no CORS headers are set; browser will block the request
 
 		// Handle preflight requests
 		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(http.StatusNoContent)
+			if origin != "" && originSet[origin] {
+				c.AbortWithStatus(http.StatusNoContent)
+			} else {
+				c.AbortWithStatus(http.StatusForbidden)
+			}
 			return
 		}
 
@@ -185,7 +195,7 @@ func InputValidationMiddleware() gin.HandlerFunc {
 				!strings.Contains(contentType, "multipart/form-data") &&
 				!strings.Contains(contentType, "application/x-www-form-urlencoded") {
 				c.JSON(http.StatusBadRequest, gin.H{
-					"error": "Invalid Content-Type",
+					"error":   "Invalid Content-Type",
 					"message": "Content-Type must be application/json, multipart/form-data, or application/x-www-form-urlencoded",
 				})
 				c.Abort()
@@ -208,8 +218,8 @@ type BruteForceProtection struct {
 
 // LoginAttempts tracks login attempts for an IP
 type LoginAttempts struct {
-	Count      int
-	LastAttempt time.Time
+	Count        int
+	LastAttempt  time.Time
 	BlockedUntil time.Time
 }
 
@@ -235,7 +245,7 @@ func (bfp *BruteForceProtection) RecordFailedAttempt(ip string) {
 	attempts, exists := bfp.attempts[ip]
 	if !exists {
 		attempts = &LoginAttempts{
-			Count:      1,
+			Count:       1,
 			LastAttempt: now,
 		}
 		bfp.attempts[ip] = attempts
@@ -326,8 +336,8 @@ func (bfp *BruteForceProtection) cleanupAttempts() {
 func BruteForceProtectionMiddleware(bfp *BruteForceProtection) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Only apply to login endpoints
-		if !strings.Contains(c.Request.URL.Path, "/login") && 
-		   !strings.Contains(c.Request.URL.Path, "/auth") {
+		if !strings.Contains(c.Request.URL.Path, "/login") &&
+			!strings.Contains(c.Request.URL.Path, "/auth") {
 			c.Next()
 			return
 		}
@@ -338,9 +348,9 @@ func BruteForceProtectionMiddleware(bfp *BruteForceProtection) gin.HandlerFunc {
 		if bfp.IsBlocked(ip) {
 			remaining := bfp.GetRemainingAttempts(ip)
 			c.JSON(http.StatusTooManyRequests, gin.H{
-				"error":   "Too many failed login attempts",
-				"message": "Your IP has been temporarily blocked due to too many failed login attempts",
-				"retry_after": "30m",
+				"error":              "Too many failed login attempts",
+				"message":            "Your IP has been temporarily blocked due to too many failed login attempts",
+				"retry_after":        "30m",
 				"remaining_attempts": remaining,
 			})
 			c.Abort()
@@ -392,11 +402,11 @@ func AuditLogMiddleware() gin.HandlerFunc {
 		}
 
 		// Log suspicious activities
-		if status == http.StatusUnauthorized || 
-		   status == http.StatusForbidden || 
-		   status == http.StatusTooManyRequests ||
-		   strings.Contains(path, "/login") ||
-		   strings.Contains(path, "/auth") {
+		if status == http.StatusUnauthorized ||
+			status == http.StatusForbidden ||
+			status == http.StatusTooManyRequests ||
+			strings.Contains(path, "/login") ||
+			strings.Contains(path, "/auth") {
 			// In production, send to SIEM for analysis
 			fmt.Printf("[AUDIT] %v\n", auditLog)
 		}
@@ -498,8 +508,22 @@ func IPWhitelistMiddleware(whitelist []string) gin.HandlerFunc {
 	}
 }
 
-// APIKeyMiddleware validates API keys for external integrations
+// APIKeyMiddleware validates API keys for external integrations.
+// API keys are validated against the EXTERNAL_API_KEYS env var (comma-separated list of valid keys).
+// Each key must be at least 32 characters.
 func APIKeyMiddleware() gin.HandlerFunc {
+	// Load valid API keys from environment at startup
+	validKeys := make(map[string]bool)
+	keysEnv := os.Getenv("EXTERNAL_API_KEYS")
+	if keysEnv != "" {
+		for _, k := range strings.Split(keysEnv, ",") {
+			key := strings.TrimSpace(k)
+			if len(key) >= 32 {
+				validKeys[key] = true
+			}
+		}
+	}
+
 	return func(c *gin.Context) {
 		// Only apply to /api/external/* endpoints
 		if !strings.HasPrefix(c.Request.URL.Path, "/api/external/") {
@@ -517,12 +541,20 @@ func APIKeyMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// Validate API key (in production, check against database)
-		// For now, just check if it's not empty
-		if len(apiKey) < 32 {
+		// Validate API key against configured keys
+		if len(validKeys) == 0 {
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"error":   "API key authentication not configured",
+				"message": "No external API keys configured. Set EXTERNAL_API_KEYS environment variable.",
+			})
+			c.Abort()
+			return
+		}
+
+		if !validKeys[apiKey] {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"error":   "Invalid API key",
-				"message": "The provided API key is invalid",
+				"message": "The provided API key is not authorized",
 			})
 			c.Abort()
 			return
@@ -535,7 +567,6 @@ func APIKeyMiddleware() gin.HandlerFunc {
 		c.Next()
 	}
 }
-
 
 // ============================================================================
 // JWT AUTHENTICATION MIDDLEWARE
@@ -570,11 +601,23 @@ func (s *APIServer) AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		// Check if token is blacklisted (revoked via logout)
+		if s.redis != nil {
+			blacklistKey := "token_blacklist:" + claims.ID
+			exists, err := s.redis.Exists(c.Request.Context(), blacklistKey).Result()
+			if err == nil && exists > 0 {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Token has been revoked"})
+				c.Abort()
+				return
+			}
+		}
+
 		// Set user information in context
 		c.Set("user_id", claims.UserID)
 		c.Set("username", claims.Username)
 		c.Set("role_id", claims.RoleID)
 		c.Set("role_name", claims.RoleName)
+		c.Set("token_id", claims.ID)
 
 		// Load access scope from database (if available)
 		// Note: Se as colunas allowed_account_ids/allowed_bucket_names não existirem no banco,
@@ -742,7 +785,7 @@ func isSensitiveEndpoint(path string) bool {
 func (s *APIServer) RateLimitMiddleware(limiter *RateLimiter) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ip := c.ClientIP()
-		
+
 		if !limiter.GetLimiter(ip).Allow() {
 			c.JSON(http.StatusTooManyRequests, gin.H{
 				"error": "Rate limit exceeded. Please try again later.",
@@ -759,7 +802,7 @@ func (s *APIServer) RateLimitMiddleware(limiter *RateLimiter) gin.HandlerFunc {
 func (s *APIServer) LoginRateLimitMiddleware(limiter *RateLimiter) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ip := c.ClientIP()
-		
+
 		if !limiter.GetLimiter(ip).Allow() {
 			c.JSON(http.StatusTooManyRequests, gin.H{
 				"error": "Too many login attempts. Please try again in a few minutes.",

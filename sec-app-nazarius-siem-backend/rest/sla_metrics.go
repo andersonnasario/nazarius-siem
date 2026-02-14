@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -283,9 +284,10 @@ func (s *APIServer) handleListSLAPolicies(c *gin.Context) {
 func (s *APIServer) handleCreateSLAPolicy(c *gin.Context) {
 	var policy SLAPolicy
 	if err := c.ShouldBindJSON(&policy); err != nil {
+		log.Printf("[ERROR] handleCreateSLAPolicy bind JSON: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"error":   err.Error(),
+			"error":   "Invalid request",
 		})
 		return
 	}
@@ -323,9 +325,10 @@ func (s *APIServer) handleUpdateSLAPolicy(c *gin.Context) {
 
 	var updates SLAPolicy
 	if err := c.ShouldBindJSON(&updates); err != nil {
+		log.Printf("[ERROR] handleUpdateSLAPolicy bind JSON: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"error":   err.Error(),
+			"error":   "Invalid request",
 		})
 		return
 	}

@@ -7,7 +7,9 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
@@ -26,9 +28,9 @@ const (
 
 // Integration vendors
 const (
-	VendorFortinet = "fortinet"
-	VendorAWS      = "aws"
-	VendorAcronis  = "acronis"
+	VendorFortinet  = "fortinet"
+	VendorAWS       = "aws"
+	VendorAcronis   = "acronis"
 	VendorJumpCloud = "jumpcloud"
 )
 
@@ -43,24 +45,24 @@ const (
 
 // Integration represents a third-party integration
 type Integration struct {
-	ID              string                 `json:"id"`
-	Name            string                 `json:"name"`
-	Type            string                 `json:"type"`
-	Vendor          string                 `json:"vendor"`
-	Description     string                 `json:"description"`
-	Status          string                 `json:"status"`
-	Enabled         bool                   `json:"enabled"`
-	Configuration   map[string]interface{} `json:"configuration"`
+	ID              string                  `json:"id"`
+	Name            string                  `json:"name"`
+	Type            string                  `json:"type"`
+	Vendor          string                  `json:"vendor"`
+	Description     string                  `json:"description"`
+	Status          string                  `json:"status"`
+	Enabled         bool                    `json:"enabled"`
+	Configuration   map[string]interface{}  `json:"configuration"`
 	Credentials     *IntegrationCredentials `json:"credentials,omitempty"`
-	LastSync        *time.Time             `json:"last_sync,omitempty"`
-	LastError       string                 `json:"last_error,omitempty"`
-	EventsCollected int64                  `json:"events_collected"`
-	DataCollected   int64                  `json:"data_collected"` // in bytes
-	Health          *IntegrationHealth     `json:"health"`
-	Capabilities    []string               `json:"capabilities"`
-	CreatedAt       time.Time              `json:"created_at"`
-	UpdatedAt       time.Time              `json:"updated_at"`
-	CreatedBy       string                 `json:"created_by"`
+	LastSync        *time.Time              `json:"last_sync,omitempty"`
+	LastError       string                  `json:"last_error,omitempty"`
+	EventsCollected int64                   `json:"events_collected"`
+	DataCollected   int64                   `json:"data_collected"` // in bytes
+	Health          *IntegrationHealth      `json:"health"`
+	Capabilities    []string                `json:"capabilities"`
+	CreatedAt       time.Time               `json:"created_at"`
+	UpdatedAt       time.Time               `json:"updated_at"`
+	CreatedBy       string                  `json:"created_by"`
 }
 
 // IntegrationCredentials stores encrypted credentials
@@ -80,12 +82,12 @@ type IntegrationCredentials struct {
 
 // IntegrationHealth represents health status
 type IntegrationHealth struct {
-	Status        string    `json:"status"`
-	ResponseTime  int       `json:"response_time_ms"`
-	LastCheck     time.Time `json:"last_check"`
-	ErrorCount    int       `json:"error_count"`
-	SuccessRate   float64   `json:"success_rate"`
-	Message       string    `json:"message,omitempty"`
+	Status       string    `json:"status"`
+	ResponseTime int       `json:"response_time_ms"`
+	LastCheck    time.Time `json:"last_check"`
+	ErrorCount   int       `json:"error_count"`
+	SuccessRate  float64   `json:"success_rate"`
+	Message      string    `json:"message,omitempty"`
 }
 
 // IntegrationLog represents integration activity log
@@ -102,19 +104,19 @@ type IntegrationLog struct {
 
 // IntegrationTemplate represents a pre-configured integration template
 type IntegrationTemplate struct {
-	ID              string                 `json:"id"`
-	Name            string                 `json:"name"`
-	Vendor          string                 `json:"vendor"`
-	Type            string                 `json:"type"`
-	Description     string                 `json:"description"`
-	Icon            string                 `json:"icon"`
-	Documentation   string                 `json:"documentation"`
-	RequiredFields  []IntegrationField     `json:"required_fields"`
-	OptionalFields  []IntegrationField     `json:"optional_fields"`
-	Capabilities    []string               `json:"capabilities"`
-	DefaultConfig   map[string]interface{} `json:"default_config"`
-	SetupSteps      []string               `json:"setup_steps"`
-	Permissions     []string               `json:"permissions"`
+	ID             string                 `json:"id"`
+	Name           string                 `json:"name"`
+	Vendor         string                 `json:"vendor"`
+	Type           string                 `json:"type"`
+	Description    string                 `json:"description"`
+	Icon           string                 `json:"icon"`
+	Documentation  string                 `json:"documentation"`
+	RequiredFields []IntegrationField     `json:"required_fields"`
+	OptionalFields []IntegrationField     `json:"optional_fields"`
+	Capabilities   []string               `json:"capabilities"`
+	DefaultConfig  map[string]interface{} `json:"default_config"`
+	SetupSteps     []string               `json:"setup_steps"`
+	Permissions    []string               `json:"permissions"`
 }
 
 // IntegrationField represents a configuration field
@@ -135,7 +137,22 @@ var (
 	integrations     = make(map[string]*Integration)
 	integrationLogs  = []IntegrationLog{}
 	integrationMutex sync.RWMutex
-	encryptionKey    = []byte("siem-platform-secret-key-32b!") // 32 bytes for AES-256
+	encryptionKey    = func() []byte {
+		key := os.Getenv("ENCRYPTION_KEY")
+		if key == "" {
+			log.Println("⚠️  ENCRYPTION_KEY not set, using random key (integration credentials will NOT survive restarts)")
+			randKey := make([]byte, 32)
+			if _, err := io.ReadFull(rand.Reader, randKey); err != nil {
+				log.Fatal("FATAL: Failed to generate random encryption key: " + err.Error())
+			}
+			return randKey
+		}
+		decoded, err := base64.StdEncoding.DecodeString(key)
+		if err != nil || len(decoded) != 32 {
+			log.Fatal("FATAL: ENCRYPTION_KEY must be a base64-encoded 32-byte key. Generate one with: openssl rand -base64 32")
+		}
+		return decoded
+	}() // 32 bytes for AES-256
 )
 
 // Initialize integrations
@@ -144,7 +161,7 @@ func initIntegrations() {
 	defer integrationMutex.Unlock()
 
 	now := time.Now()
-	
+
 	// Sample integrations for demonstration
 	integrations = map[string]*Integration{
 		"int-001": {
@@ -198,7 +215,7 @@ func (s *APIServer) handleListIntegrations(c *gin.Context) {
 		if statusFilter != "" && integration.Status != statusFilter {
 			continue
 		}
-		
+
 		// Remove sensitive data
 		integrationCopy := *integration
 		integrationCopy.Credentials = nil
@@ -233,7 +250,8 @@ func (s *APIServer) handleGetIntegration(c *gin.Context) {
 func (s *APIServer) handleCreateIntegration(c *gin.Context) {
 	var req Integration
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] create integration bind: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -279,7 +297,8 @@ func (s *APIServer) handleUpdateIntegration(c *gin.Context) {
 
 	var req Integration
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] update integration bind: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -338,7 +357,7 @@ func (s *APIServer) handleTestIntegration(c *gin.Context) {
 
 	// Simulate connection test
 	start := time.Now()
-	
+
 	// Update status
 	integrationMutex.Lock()
 	integration.Status = IntegrationStatusTesting
@@ -346,9 +365,9 @@ func (s *APIServer) handleTestIntegration(c *gin.Context) {
 
 	// Simulate test (in real implementation, this would test actual connection)
 	time.Sleep(500 * time.Millisecond)
-	
+
 	duration := time.Since(start).Milliseconds()
-	
+
 	testResult := gin.H{
 		"success":       true,
 		"message":       "Connection successful",
@@ -399,10 +418,10 @@ func (s *APIServer) handleSyncIntegration(c *gin.Context) {
 
 	// Simulate sync
 	start := time.Now()
-	
+
 	// In real implementation, this would fetch data from the integration
 	time.Sleep(1 * time.Second)
-	
+
 	eventsCollected := int64(1250)
 	dataCollected := int64(1024 * 1024 * 5) // 5 MB
 
@@ -451,7 +470,7 @@ func (s *APIServer) handleGetIntegrationLogs(c *gin.Context) {
 
 func (s *APIServer) handleGetIntegrationTemplates(c *gin.Context) {
 	templates := getIntegrationTemplates()
-	
+
 	typeFilter := c.Query("type")
 	vendorFilter := c.Query("vendor")
 
@@ -627,12 +646,12 @@ func logIntegrationAction(integrationID, action, status, message string, details
 func getIntegrationTemplates() []IntegrationTemplate {
 	return []IntegrationTemplate{
 		{
-			ID:          "template-fortinet",
-			Name:        "Fortinet FortiGate",
-			Vendor:      VendorFortinet,
-			Type:        IntegrationTypeFirewall,
-			Description: "Integração com Fortinet FortiGate Firewall para coleta de logs, eventos de segurança, tráfego e UTM",
-			Icon:        "SecurityIcon",
+			ID:            "template-fortinet",
+			Name:          "Fortinet FortiGate",
+			Vendor:        VendorFortinet,
+			Type:          IntegrationTypeFirewall,
+			Description:   "Integração com Fortinet FortiGate Firewall para coleta de logs, eventos de segurança, tráfego e UTM",
+			Icon:          "SecurityIcon",
 			Documentation: "/docs/integrations/fortinet-fortigate",
 			RequiredFields: []IntegrationField{
 				{Name: "endpoint", Label: "FortiGate IP/Hostname", Type: "text", Required: true, Placeholder: "192.168.1.1 or fortigate.company.com"},
@@ -671,12 +690,12 @@ func getIntegrationTemplates() []IntegrationTemplate {
 			},
 		},
 		{
-			ID:          "template-aws-waf",
-			Name:        "AWS WAF",
-			Vendor:      VendorAWS,
-			Type:        IntegrationTypeWAF,
-			Description: "Integração com AWS WAF para coleta de logs, métricas e eventos de segurança",
-			Icon:        "CloudIcon",
+			ID:            "template-aws-waf",
+			Name:          "AWS WAF",
+			Vendor:        VendorAWS,
+			Type:          IntegrationTypeWAF,
+			Description:   "Integração com AWS WAF para coleta de logs, métricas e eventos de segurança",
+			Icon:          "CloudIcon",
 			Documentation: "/docs/integrations/aws-waf",
 			RequiredFields: []IntegrationField{
 				{Name: "access_key_id", Label: "AWS Access Key ID", Type: "text", Required: true},
@@ -718,12 +737,12 @@ func getIntegrationTemplates() []IntegrationTemplate {
 			},
 		},
 		{
-			ID:          "template-acronis-edr",
-			Name:        "Acronis Cyber Protect (EDR)",
-			Vendor:      VendorAcronis,
-			Type:        IntegrationTypeEDR,
-			Description: "Integração com Acronis Cyber Protect para coleta de eventos de EDR, alertas e telemetria de endpoints",
-			Icon:        "SecurityIcon",
+			ID:            "template-acronis-edr",
+			Name:          "Acronis Cyber Protect (EDR)",
+			Vendor:        VendorAcronis,
+			Type:          IntegrationTypeEDR,
+			Description:   "Integração com Acronis Cyber Protect para coleta de eventos de EDR, alertas e telemetria de endpoints",
+			Icon:          "SecurityIcon",
 			Documentation: "/docs/integrations/acronis-edr",
 			RequiredFields: []IntegrationField{
 				{Name: "data_center", Label: "Data Center", Type: "select", Required: true, Options: []string{"US", "EU", "AP", "CA"}},
@@ -762,12 +781,12 @@ func getIntegrationTemplates() []IntegrationTemplate {
 			},
 		},
 		{
-			ID:          "template-acronis-av",
-			Name:        "Acronis Cyber Protect (Antivirus)",
-			Vendor:      VendorAcronis,
-			Type:        IntegrationTypeAntivirus,
-			Description: "Integração com Acronis Cyber Protect para coleta de eventos de antivírus, detecções e quarentena",
-			Icon:        "ShieldIcon",
+			ID:            "template-acronis-av",
+			Name:          "Acronis Cyber Protect (Antivirus)",
+			Vendor:        VendorAcronis,
+			Type:          IntegrationTypeAntivirus,
+			Description:   "Integração com Acronis Cyber Protect para coleta de eventos de antivírus, detecções e quarentena",
+			Icon:          "ShieldIcon",
 			Documentation: "/docs/integrations/acronis-antivirus",
 			RequiredFields: []IntegrationField{
 				{Name: "data_center", Label: "Data Center", Type: "select", Required: true, Options: []string{"US", "EU", "AP", "CA"}},
@@ -799,12 +818,12 @@ func getIntegrationTemplates() []IntegrationTemplate {
 			},
 		},
 		{
-			ID:          "template-jumpcloud",
-			Name:        "JumpCloud",
-			Vendor:      VendorJumpCloud,
-			Type:        IntegrationTypeIAM,
-			Description: "Integração com JumpCloud para coleta de eventos de autenticação, gestão de usuários e atividades de IAM",
-			Icon:        "PeopleIcon",
+			ID:            "template-jumpcloud",
+			Name:          "JumpCloud",
+			Vendor:        VendorJumpCloud,
+			Type:          IntegrationTypeIAM,
+			Description:   "Integração com JumpCloud para coleta de eventos de autenticação, gestão de usuários e atividades de IAM",
+			Icon:          "PeopleIcon",
 			Documentation: "/docs/integrations/jumpcloud",
 			RequiredFields: []IntegrationField{
 				{Name: "api_key", Label: "API Key", Type: "password", Required: true},
@@ -841,12 +860,12 @@ func getIntegrationTemplates() []IntegrationTemplate {
 			},
 		},
 		{
-			ID:          "template-palo-alto",
-			Name:        "Palo Alto Networks Firewall",
-			Vendor:      "Palo Alto Networks",
-			Type:        IntegrationTypeFirewall,
-			Description: "Integração com Palo Alto Networks para coleta de logs, threats, traffic e URL filtering",
-			Icon:        "SecurityIcon",
+			ID:            "template-palo-alto",
+			Name:          "Palo Alto Networks Firewall",
+			Vendor:        "Palo Alto Networks",
+			Type:          IntegrationTypeFirewall,
+			Description:   "Integração com Palo Alto Networks para coleta de logs, threats, traffic e URL filtering",
+			Icon:          "SecurityIcon",
 			Documentation: "/docs/integrations/palo-alto",
 			RequiredFields: []IntegrationField{
 				{Name: "hostname", Label: "Firewall Hostname/IP", Type: "text", Required: true, Placeholder: "192.168.1.1 or pa-fw.company.com"},
@@ -880,12 +899,12 @@ func getIntegrationTemplates() []IntegrationTemplate {
 			},
 		},
 		{
-			ID:          "template-microsoft-defender",
-			Name:        "Microsoft Defender for Endpoint",
-			Vendor:      "Microsoft",
-			Type:        IntegrationTypeEDR,
-			Description: "Integração com Microsoft Defender for Endpoint para coleta de alertas, incidentes e telemetria",
-			Icon:        "SecurityIcon",
+			ID:            "template-microsoft-defender",
+			Name:          "Microsoft Defender for Endpoint",
+			Vendor:        "Microsoft",
+			Type:          IntegrationTypeEDR,
+			Description:   "Integração com Microsoft Defender for Endpoint para coleta de alertas, incidentes e telemetria",
+			Icon:          "SecurityIcon",
 			Documentation: "/docs/integrations/microsoft-defender",
 			RequiredFields: []IntegrationField{
 				{Name: "tenant_id", Label: "Azure Tenant ID", Type: "text", Required: true},
@@ -922,12 +941,12 @@ func getIntegrationTemplates() []IntegrationTemplate {
 			},
 		},
 		{
-			ID:          "template-crowdstrike",
-			Name:        "CrowdStrike Falcon",
-			Vendor:      "CrowdStrike",
-			Type:        IntegrationTypeEDR,
-			Description: "Integração com CrowdStrike Falcon para coleta de detecções, incidents e telemetria de endpoints",
-			Icon:        "SecurityIcon",
+			ID:            "template-crowdstrike",
+			Name:          "CrowdStrike Falcon",
+			Vendor:        "CrowdStrike",
+			Type:          IntegrationTypeEDR,
+			Description:   "Integração com CrowdStrike Falcon para coleta de detecções, incidents e telemetria de endpoints",
+			Icon:          "SecurityIcon",
 			Documentation: "/docs/integrations/crowdstrike",
 			RequiredFields: []IntegrationField{
 				{Name: "client_id", Label: "API Client ID", Type: "text", Required: true},
@@ -968,12 +987,12 @@ func getIntegrationTemplates() []IntegrationTemplate {
 			},
 		},
 		{
-			ID:          "template-splunk",
-			Name:        "Splunk Enterprise",
-			Vendor:      "Splunk",
-			Type:        "siem",
-			Description: "Integração com Splunk para coleta de eventos, searches e alertas",
-			Icon:        "StorageIcon",
+			ID:            "template-splunk",
+			Name:          "Splunk Enterprise",
+			Vendor:        "Splunk",
+			Type:          "siem",
+			Description:   "Integração com Splunk para coleta de eventos, searches e alertas",
+			Icon:          "StorageIcon",
 			Documentation: "/docs/integrations/splunk",
 			RequiredFields: []IntegrationField{
 				{Name: "hostname", Label: "Splunk Hostname/IP", Type: "text", Required: true, Placeholder: "splunk.company.com"},
@@ -1008,12 +1027,12 @@ func getIntegrationTemplates() []IntegrationTemplate {
 			},
 		},
 		{
-			ID:          "template-okta",
-			Name:        "Okta",
-			Vendor:      "Okta",
-			Type:        IntegrationTypeIAM,
-			Description: "Integração com Okta para coleta de eventos de autenticação, usuários e aplicações",
-			Icon:        "PeopleIcon",
+			ID:            "template-okta",
+			Name:          "Okta",
+			Vendor:        "Okta",
+			Type:          IntegrationTypeIAM,
+			Description:   "Integração com Okta para coleta de eventos de autenticação, usuários e aplicações",
+			Icon:          "PeopleIcon",
 			Documentation: "/docs/integrations/okta",
 			RequiredFields: []IntegrationField{
 				{Name: "domain", Label: "Okta Domain", Type: "text", Required: true, Placeholder: "company.okta.com"},
@@ -1046,12 +1065,12 @@ func getIntegrationTemplates() []IntegrationTemplate {
 			},
 		},
 		{
-			ID:          "template-cisco-firepower",
-			Name:        "Cisco Firepower",
-			Vendor:      "Cisco",
-			Type:        IntegrationTypeFirewall,
-			Description: "Integração com Cisco Firepower para coleta de eventos, intrusions e file events",
-			Icon:        "SecurityIcon",
+			ID:            "template-cisco-firepower",
+			Name:          "Cisco Firepower",
+			Vendor:        "Cisco",
+			Type:          IntegrationTypeFirewall,
+			Description:   "Integração com Cisco Firepower para coleta de eventos, intrusions e file events",
+			Icon:          "SecurityIcon",
 			Documentation: "/docs/integrations/cisco-firepower",
 			RequiredFields: []IntegrationField{
 				{Name: "hostname", Label: "FMC Hostname/IP", Type: "text", Required: true, Placeholder: "fmc.company.com"},
@@ -1085,12 +1104,12 @@ func getIntegrationTemplates() []IntegrationTemplate {
 			},
 		},
 		{
-			ID:          "template-sentinelone",
-			Name:        "SentinelOne",
-			Vendor:      "SentinelOne",
-			Type:        IntegrationTypeEDR,
-			Description: "Integração com SentinelOne para coleta de threats, agents e deep visibility events",
-			Icon:        "SecurityIcon",
+			ID:            "template-sentinelone",
+			Name:          "SentinelOne",
+			Vendor:        "SentinelOne",
+			Type:          IntegrationTypeEDR,
+			Description:   "Integração com SentinelOne para coleta de threats, agents e deep visibility events",
+			Icon:          "SecurityIcon",
 			Documentation: "/docs/integrations/sentinelone",
 			RequiredFields: []IntegrationField{
 				{Name: "console_url", Label: "Console URL", Type: "text", Required: true, Placeholder: "https://company.sentinelone.net"},
@@ -1125,12 +1144,12 @@ func getIntegrationTemplates() []IntegrationTemplate {
 			},
 		},
 		{
-			ID:          "template-zscaler",
-			Name:        "Zscaler Internet Access",
-			Vendor:      "Zscaler",
-			Type:        "cloud_security",
-			Description: "Integração com Zscaler ZIA para coleta de web logs, firewall logs e DNS logs",
-			Icon:        "CloudIcon",
+			ID:            "template-zscaler",
+			Name:          "Zscaler Internet Access",
+			Vendor:        "Zscaler",
+			Type:          "cloud_security",
+			Description:   "Integração com Zscaler ZIA para coleta de web logs, firewall logs e DNS logs",
+			Icon:          "CloudIcon",
 			Documentation: "/docs/integrations/zscaler",
 			RequiredFields: []IntegrationField{
 				{Name: "cloud_name", Label: "Cloud Name", Type: "select", Required: true, Options: []string{"zscaler", "zscalerone", "zscalertwo", "zscalerthree", "zscloud", "zscalerbeta"}},
@@ -1163,12 +1182,12 @@ func getIntegrationTemplates() []IntegrationTemplate {
 			},
 		},
 		{
-			ID:          "template-qualys",
-			Name:        "Qualys VMDR",
-			Vendor:      "Qualys",
-			Type:        "vulnerability_management",
-			Description: "Integração com Qualys para coleta de vulnerabilidades, assets e compliance data",
-			Icon:        "BugReportIcon",
+			ID:            "template-qualys",
+			Name:          "Qualys VMDR",
+			Vendor:        "Qualys",
+			Type:          "vulnerability_management",
+			Description:   "Integração com Qualys para coleta de vulnerabilidades, assets e compliance data",
+			Icon:          "BugReportIcon",
 			Documentation: "/docs/integrations/qualys",
 			RequiredFields: []IntegrationField{
 				{Name: "platform", Label: "Platform", Type: "select", Required: true, Options: []string{
@@ -1207,12 +1226,12 @@ func getIntegrationTemplates() []IntegrationTemplate {
 			},
 		},
 		{
-			ID:          "template-tenable",
-			Name:        "Tenable Nessus / Tenable.io",
-			Vendor:      "Tenable",
-			Type:        "vulnerability_management",
-			Description: "Integração com Tenable para coleta de vulnerabilidades, scans e assets",
-			Icon:        "BugReportIcon",
+			ID:            "template-tenable",
+			Name:          "Tenable Nessus / Tenable.io",
+			Vendor:        "Tenable",
+			Type:          "vulnerability_management",
+			Description:   "Integração com Tenable para coleta de vulnerabilidades, scans e assets",
+			Icon:          "BugReportIcon",
 			Documentation: "/docs/integrations/tenable",
 			RequiredFields: []IntegrationField{
 				{Name: "product", Label: "Product", Type: "select", Required: true, Options: []string{"Tenable.io", "Tenable.sc", "Nessus Professional"}},
@@ -1246,12 +1265,12 @@ func getIntegrationTemplates() []IntegrationTemplate {
 			},
 		},
 		{
-			ID:          "template-aws-identity-center",
-			Name:        "AWS Identity Center (AWS SSO)",
-			Vendor:      VendorAWS,
-			Type:        IntegrationTypeIAM,
-			Description: "Integração com AWS Identity Center para coleta de eventos de autenticação, usuários, grupos e atividades de SSO",
-			Icon:        "PeopleIcon",
+			ID:            "template-aws-identity-center",
+			Name:          "AWS Identity Center (AWS SSO)",
+			Vendor:        VendorAWS,
+			Type:          IntegrationTypeIAM,
+			Description:   "Integração com AWS Identity Center para coleta de eventos de autenticação, usuários, grupos e atividades de SSO",
+			Icon:          "PeopleIcon",
 			Documentation: "/docs/integrations/aws-identity-center",
 			RequiredFields: []IntegrationField{
 				{Name: "access_key_id", Label: "AWS Access Key ID", Type: "text", Required: true, Description: "Access Key do usuário IAM com permissões"},
@@ -1287,12 +1306,12 @@ func getIntegrationTemplates() []IntegrationTemplate {
 				"session_management",
 			},
 			DefaultConfig: map[string]interface{}{
-				"collect_auth_events":       true,
-				"collect_user_changes":      true,
-				"collect_permission_sets":   true,
+				"collect_auth_events":         true,
+				"collect_user_changes":        true,
+				"collect_permission_sets":     true,
 				"collect_account_assignments": true,
-				"collect_cloudtrail":        true,
-				"poll_interval":             120,
+				"collect_cloudtrail":          true,
+				"poll_interval":               120,
 			},
 			SetupSteps: []string{
 				"Acesse AWS IAM Console",
@@ -1326,12 +1345,12 @@ func getIntegrationTemplates() []IntegrationTemplate {
 			},
 		},
 		{
-			ID:          "template-aws-config",
-			Name:        "AWS Config",
-			Vendor:      VendorAWS,
-			Type:        "cspm",
-			Description: "Integração com AWS Config para monitoramento de configuração, compliance e postura de segurança",
-			Icon:        "SettingsIcon",
+			ID:            "template-aws-config",
+			Name:          "AWS Config",
+			Vendor:        VendorAWS,
+			Type:          "cspm",
+			Description:   "Integração com AWS Config para monitoramento de configuração, compliance e postura de segurança",
+			Icon:          "SettingsIcon",
 			Documentation: "/docs/integrations/aws-config",
 			RequiredFields: []IntegrationField{
 				{Name: "access_key_id", Label: "AWS Access Key ID", Type: "text", Required: true},
@@ -1393,12 +1412,12 @@ func getIntegrationTemplates() []IntegrationTemplate {
 			},
 		},
 		{
-			ID:          "template-aws-security-hub",
-			Name:        "AWS Security Hub",
-			Vendor:      VendorAWS,
-			Type:        "cspm",
-			Description: "Integração com AWS Security Hub para agregação de findings de segurança e compliance checks",
-			Icon:        "SecurityIcon",
+			ID:            "template-aws-security-hub",
+			Name:          "AWS Security Hub",
+			Vendor:        VendorAWS,
+			Type:          "cspm",
+			Description:   "Integração com AWS Security Hub para agregação de findings de segurança e compliance checks",
+			Icon:          "SecurityIcon",
 			Documentation: "/docs/integrations/aws-security-hub",
 			RequiredFields: []IntegrationField{
 				{Name: "access_key_id", Label: "AWS Access Key ID", Type: "text", Required: true},
@@ -1456,12 +1475,12 @@ func getIntegrationTemplates() []IntegrationTemplate {
 			},
 		},
 		{
-			ID:          "template-aws-guardduty",
-			Name:        "AWS GuardDuty",
-			Vendor:      VendorAWS,
-			Type:        "threat_detection",
-			Description: "Integração com AWS GuardDuty para detecção de ameaças e atividades maliciosas",
-			Icon:        "SecurityIcon",
+			ID:            "template-aws-guardduty",
+			Name:          "AWS GuardDuty",
+			Vendor:        VendorAWS,
+			Type:          "threat_detection",
+			Description:   "Integração com AWS GuardDuty para detecção de ameaças e atividades maliciosas",
+			Icon:          "SecurityIcon",
 			Documentation: "/docs/integrations/aws-guardduty",
 			RequiredFields: []IntegrationField{
 				{Name: "access_key_id", Label: "AWS Access Key ID", Type: "text", Required: true},
@@ -1518,12 +1537,12 @@ func getIntegrationTemplates() []IntegrationTemplate {
 			},
 		},
 		{
-			ID:          "template-aws-cloudtrail",
-			Name:        "AWS CloudTrail",
-			Vendor:      VendorAWS,
-			Type:        "audit_logging",
-			Description: "Integração com AWS CloudTrail para coleta de audit logs e eventos de API calls",
-			Icon:        "HistoryIcon",
+			ID:            "template-aws-cloudtrail",
+			Name:          "AWS CloudTrail",
+			Vendor:        VendorAWS,
+			Type:          "audit_logging",
+			Description:   "Integração com AWS CloudTrail para coleta de audit logs e eventos de API calls",
+			Icon:          "HistoryIcon",
 			Documentation: "/docs/integrations/aws-cloudtrail",
 			RequiredFields: []IntegrationField{
 				{Name: "access_key_id", Label: "AWS Access Key ID", Type: "text", Required: true},
@@ -1584,12 +1603,12 @@ func getIntegrationTemplates() []IntegrationTemplate {
 			},
 		},
 		{
-			ID:          "template-aws-inspector",
-			Name:        "AWS Inspector",
-			Vendor:      VendorAWS,
-			Type:        "vulnerability_assessment",
-			Description: "Integração com AWS Inspector para avaliação de vulnerabilidades em EC2 e ECR",
-			Icon:        "BugReportIcon",
+			ID:            "template-aws-inspector",
+			Name:          "AWS Inspector",
+			Vendor:        VendorAWS,
+			Type:          "vulnerability_assessment",
+			Description:   "Integração com AWS Inspector para avaliação de vulnerabilidades em EC2 e ECR",
+			Icon:          "BugReportIcon",
 			Documentation: "/docs/integrations/aws-inspector",
 			RequiredFields: []IntegrationField{
 				{Name: "access_key_id", Label: "AWS Access Key ID", Type: "text", Required: true},
@@ -1619,11 +1638,11 @@ func getIntegrationTemplates() []IntegrationTemplate {
 				"risk_scoring",
 			},
 			DefaultConfig: map[string]interface{}{
-				"collect_findings":   true,
-				"scan_ec2":           true,
-				"scan_ecr":           true,
-				"multi_region":       true,
-				"poll_interval":      600,
+				"collect_findings": true,
+				"scan_ec2":         true,
+				"scan_ecr":         true,
+				"multi_region":     true,
+				"poll_interval":    600,
 			},
 			SetupSteps: []string{
 				"Acesse AWS IAM Console",

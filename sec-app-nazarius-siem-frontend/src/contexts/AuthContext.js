@@ -17,17 +17,36 @@ export const AuthProvider = ({ children }) => {
   const [accessToken, setAccessToken] = useState(null);
   const [refreshToken, setRefreshToken] = useState(null);
 
-  // Verificar token ao carregar
+  // Check for stored tokens on load.
+  // Security: Using sessionStorage instead of localStorage to limit XSS token theft
+  // (sessionStorage is per-tab and cleared when the tab closes).
+  // Migration: Also check localStorage for existing sessions, then remove from localStorage.
   useEffect(() => {
     const checkAuth = async () => {
-      const storedAccessToken = localStorage.getItem('access_token');
-      const storedRefreshToken = localStorage.getItem('refresh_token');
-      const storedUser = localStorage.getItem('user');
+      // Try sessionStorage first, then fallback to localStorage (migration)
+      let storedAccessToken = sessionStorage.getItem('access_token') || localStorage.getItem('access_token');
+      let storedRefreshToken = sessionStorage.getItem('refresh_token') || localStorage.getItem('refresh_token');
+      let storedUser = sessionStorage.getItem('user') || localStorage.getItem('user');
+
+      // Migrate from localStorage to sessionStorage if needed
+      if (localStorage.getItem('access_token')) {
+        sessionStorage.setItem('access_token', localStorage.getItem('access_token'));
+        sessionStorage.setItem('refresh_token', localStorage.getItem('refresh_token') || '');
+        sessionStorage.setItem('user', localStorage.getItem('user') || '');
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('user');
+      }
 
       if (storedAccessToken && storedUser) {
         setAccessToken(storedAccessToken);
         setRefreshToken(storedRefreshToken);
-        setUser(JSON.parse(storedUser));
+        try {
+          setUser(JSON.parse(storedUser));
+        } catch {
+          // Invalid stored user data
+          sessionStorage.clear();
+        }
       }
 
       setLoading(false);
@@ -44,14 +63,18 @@ export const AuthProvider = ({ children }) => {
       try {
         const response = await authAPI.refresh(refreshToken);
         const newAccessToken = response.data.access_token;
+        const newRefreshToken = response.data.refresh_token;
         
         setAccessToken(newAccessToken);
-        localStorage.setItem('access_token', newAccessToken);
+        sessionStorage.setItem('access_token', newAccessToken);
         
-        console.log('[AUTH] Token refreshed successfully');
+        // Handle refresh token rotation (if server sends a new refresh token)
+        if (newRefreshToken) {
+          setRefreshToken(newRefreshToken);
+          sessionStorage.setItem('refresh_token', newRefreshToken);
+        }
       } catch (error) {
-        console.error('[AUTH] Failed to refresh token:', error);
-        // Se falhar, fazer logout
+        // Token refresh failed - logout
         logout();
       }
     }, 10 * 60 * 1000); // 10 minutos
@@ -69,10 +92,10 @@ export const AuthProvider = ({ children }) => {
       setRefreshToken(refresh_token);
       setUser(userData);
 
-      // Salvar no localStorage
-      localStorage.setItem('access_token', access_token);
-      localStorage.setItem('refresh_token', refresh_token);
-      localStorage.setItem('user', JSON.stringify(userData));
+      // Save to sessionStorage (more secure against XSS)
+      sessionStorage.setItem('access_token', access_token);
+      sessionStorage.setItem('refresh_token', refresh_token);
+      sessionStorage.setItem('user', JSON.stringify(userData));
 
       return { success: true };
     } catch (error) {
@@ -91,12 +114,16 @@ export const AuthProvider = ({ children }) => {
         await authAPI.logout(refreshToken);
       }
     } catch (error) {
-      console.error('[AUTH] Logout error:', error);
+      // Logout error - continue with cleanup
     } finally {
-      // Limpar estado e localStorage
+      // Clear state and storage
       setUser(null);
       setAccessToken(null);
       setRefreshToken(null);
+      sessionStorage.removeItem('access_token');
+      sessionStorage.removeItem('refresh_token');
+      sessionStorage.removeItem('user');
+      // Also clear localStorage in case of migration remnants
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
       localStorage.removeItem('user');
@@ -108,10 +135,10 @@ export const AuthProvider = ({ children }) => {
       const response = await authAPI.getMe();
       const userData = response.data;
       setUser(userData);
-      localStorage.setItem('user', JSON.stringify(userData));
+      sessionStorage.setItem('user', JSON.stringify(userData));
       return userData;
     } catch (error) {
-      console.error('[AUTH] Failed to refresh user data:', error);
+      // Failed to refresh user data
       throw error;
     }
   };

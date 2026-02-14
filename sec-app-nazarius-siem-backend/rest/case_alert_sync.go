@@ -19,13 +19,13 @@ import (
 
 // AlertCaseLink representa o vínculo entre um alerta/evento e um caso
 type AlertCaseLink struct {
-	ID          string    `json:"id"`
-	AlertID     string    `json:"alert_id,omitempty"`
-	EventID     string    `json:"event_id,omitempty"`
-	CaseID      string    `json:"case_id"`
-	CaseStatus  string    `json:"case_status"`
-	LinkedAt    time.Time `json:"linked_at"`
-	LinkedBy    string    `json:"linked_by"`
+	ID         string    `json:"id"`
+	AlertID    string    `json:"alert_id,omitempty"`
+	EventID    string    `json:"event_id,omitempty"`
+	CaseID     string    `json:"case_id"`
+	CaseStatus string    `json:"case_status"`
+	LinkedAt   time.Time `json:"linked_at"`
+	LinkedBy   string    `json:"linked_by"`
 }
 
 // SuppressionRule representa uma regra de supressão para falsos positivos
@@ -54,11 +54,11 @@ type SuppressionRule struct {
 
 // CaseStatusUpdate representa uma atualização de status do caso com propagação
 type CaseStatusUpdate struct {
-	CaseID           string `json:"case_id" binding:"required"`
-	NewStatus        string `json:"new_status" binding:"required"`
-	PropagateToAlerts bool  `json:"propagate_to_alerts"` // Se deve propagar para alertas
-	PropagateToEvents bool  `json:"propagate_to_events"` // Se deve propagar para eventos
-	Comment          string `json:"comment,omitempty"`   // Comentário opcional
+	CaseID            string `json:"case_id" binding:"required"`
+	NewStatus         string `json:"new_status" binding:"required"`
+	PropagateToAlerts bool   `json:"propagate_to_alerts"` // Se deve propagar para alertas
+	PropagateToEvents bool   `json:"propagate_to_events"` // Se deve propagar para eventos
+	Comment           string `json:"comment,omitempty"`   // Comentário opcional
 }
 
 // StatusMapping mapeia status do caso para status de alerta/evento
@@ -183,7 +183,8 @@ func (s *APIServer) handleLinkAlertToCase(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleLinkAlertToCase bind: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -227,7 +228,8 @@ func (s *APIServer) handleLinkEventToCase(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleLinkEventToCase bind: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -273,7 +275,8 @@ func (s *APIServer) handleUpdateCaseStatusWithPropagation(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleUpdateCaseStatusWithPropagation bind: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -326,11 +329,11 @@ func (s *APIServer) handleUpdateCaseStatusWithPropagation(c *gin.Context) {
 		caseID, req.Status, username, updatedAlerts, updatedEvents)
 
 	c.JSON(http.StatusOK, gin.H{
-		"message":         "Case status updated successfully",
-		"case_id":         caseID,
-		"new_status":      req.Status,
-		"alerts_updated":  updatedAlerts,
-		"events_updated":  updatedEvents,
+		"message":        "Case status updated successfully",
+		"case_id":        caseID,
+		"new_status":     req.Status,
+		"alerts_updated": updatedAlerts,
+		"events_updated": updatedEvents,
 	})
 }
 
@@ -345,7 +348,8 @@ func (s *APIServer) handleGetLinkedAlerts(c *gin.Context) {
 
 	links, err := s.getAlertCaseLinksByCaseID(caseID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleGetLinkedAlerts get links: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
@@ -379,7 +383,8 @@ func (s *APIServer) handleGetLinkedEvents(c *gin.Context) {
 
 	links, err := s.getAlertCaseLinksByCaseID(caseID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleGetLinkedEvents get links: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
@@ -408,16 +413,17 @@ func (s *APIServer) handleGetLinkedEvents(c *gin.Context) {
 // handleMarkAsFalsePositive marca um alerta/evento como falso positivo e cria regra de supressão
 func (s *APIServer) handleMarkAsFalsePositive(c *gin.Context) {
 	var req struct {
-		AlertID          string   `json:"alert_id,omitempty"`
-		EventID          string   `json:"event_id,omitempty"`
-		Reason           string   `json:"reason" binding:"required"`
-		CreateSuppression bool    `json:"create_suppression"` // Se deve criar regra de supressão
-		SuppressionScope string   `json:"suppression_scope"`  // "exact", "resource", "source", "global"
-		ExpirationDays   int      `json:"expiration_days"`    // 0 = sem expiração
+		AlertID           string `json:"alert_id,omitempty"`
+		EventID           string `json:"event_id,omitempty"`
+		Reason            string `json:"reason" binding:"required"`
+		CreateSuppression bool   `json:"create_suppression"` // Se deve criar regra de supressão
+		SuppressionScope  string `json:"suppression_scope"`  // "exact", "resource", "source", "global"
+		ExpirationDays    int    `json:"expiration_days"`    // 0 = sem expiração
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleMarkAsFalsePositive bind: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -465,7 +471,7 @@ func (s *APIServer) handleMarkAsFalsePositive(c *gin.Context) {
 // handleListSuppressionRules lista todas as regras de supressão
 func (s *APIServer) handleListSuppressionRules(c *gin.Context) {
 	active := c.Query("active")
-	
+
 	if s.opensearch == nil {
 		c.JSON(http.StatusOK, gin.H{"rules": []interface{}{}, "total": 0})
 		return
@@ -473,7 +479,8 @@ func (s *APIServer) handleListSuppressionRules(c *gin.Context) {
 
 	rules, err := s.getSuppressionRules(active == "true")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleListSuppressionRules: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
@@ -487,7 +494,8 @@ func (s *APIServer) handleListSuppressionRules(c *gin.Context) {
 func (s *APIServer) handleCreateSuppressionRule(c *gin.Context) {
 	var rule SuppressionRule
 	if err := c.ShouldBindJSON(&rule); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleCreateSuppressionRule bind: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -501,7 +509,8 @@ func (s *APIServer) handleCreateSuppressionRule(c *gin.Context) {
 
 	if s.opensearch != nil {
 		if err := s.saveSuppressionRule(&rule); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			log.Printf("[ERROR] handleCreateSuppressionRule save: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 			return
 		}
 	}
@@ -517,13 +526,15 @@ func (s *APIServer) handleToggleSuppressionRule(c *gin.Context) {
 		Active bool `json:"active"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleToggleSuppressionRule bind: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
 	if s.opensearch != nil {
 		if err := s.updateSuppressionRuleStatus(ruleID, req.Active); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			log.Printf("[ERROR] handleToggleSuppressionRule update: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 			return
 		}
 	}
@@ -541,7 +552,8 @@ func (s *APIServer) handleDeleteSuppressionRule(c *gin.Context) {
 
 	if s.opensearch != nil {
 		if err := s.deleteSuppressionRule(ruleID); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			log.Printf("[ERROR] handleDeleteSuppressionRule: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 			return
 		}
 	}
@@ -565,7 +577,8 @@ func (s *APIServer) handleCheckSuppression(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&alert); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleCheckSuppression bind: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -608,14 +621,16 @@ func (s *APIServer) handleGetAlertsInAnalysis(c *gin.Context) {
 		s.opensearch.Search.WithBody(strings.NewReader(query)),
 	)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleGetAlertsInAnalysis search: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 	defer res.Body.Close()
 
 	var result map[string]interface{}
 	if err := json.NewDecoder(res.Body).Decode(&result); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleGetAlertsInAnalysis decode: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 
@@ -668,12 +683,18 @@ func (s *APIServer) saveAlertCaseLink(link *AlertCaseLink) error {
 }
 
 func (s *APIServer) getAlertCaseLinksByCaseID(caseID string) ([]AlertCaseLink, error) {
-	query := fmt.Sprintf(`{
-		"query": {
-			"term": { "case_id": "%s" }
+	// Sanitize caseID to prevent OpenSearch injection
+	safeCaseID := sanitizeAlphanumeric(caseID)
+	queryMap := map[string]interface{}{
+		"query": map[string]interface{}{
+			"term": map[string]interface{}{
+				"case_id": safeCaseID,
+			},
 		},
-		"size": 1000
-	}`, caseID)
+		"size": 1000,
+	}
+	queryJSON, _ := json.Marshal(queryMap)
+	query := string(queryJSON)
 
 	res, err := s.opensearch.Search(
 		s.opensearch.Search.WithContext(context.Background()),
@@ -748,7 +769,7 @@ func (s *APIServer) updateAlertWithCaseInfo(alertID, caseID, caseStatus string) 
 
 func (s *APIServer) updateEventWithCaseInfo(eventID, caseID, caseStatus string) error {
 	indices := []string{"siem-events-*", "guardduty-events-*", "cloudtrail-*"}
-	
+
 	for _, index := range indices {
 		updateDoc := map[string]interface{}{
 			"doc": map[string]interface{}{
@@ -823,7 +844,7 @@ func (s *APIServer) updateAlertStatus(alertID, status string) error {
 
 func (s *APIServer) updateEventStatus(eventID, status string) error {
 	indices := []string{"siem-events-*", "guardduty-events-*"}
-	
+
 	for _, index := range indices {
 		updateDoc := map[string]interface{}{
 			"doc": map[string]interface{}{
@@ -1011,7 +1032,7 @@ func (s *APIServer) saveSuppressionRule(rule *SuppressionRule) error {
 
 func (s *APIServer) getSuppressionRules(activeOnly bool) ([]SuppressionRule, error) {
 	query := `{"query": {"match_all": {}}, "size": 1000, "sort": [{"created_at": "desc"}]}`
-	
+
 	if activeOnly {
 		query = `{
 			"query": {
@@ -1192,7 +1213,7 @@ func getStringVal(data map[string]interface{}, key string) string {
 
 func parseSuppressionRule(source map[string]interface{}) SuppressionRule {
 	rule := SuppressionRule{}
-	
+
 	if v, ok := source["id"].(string); ok {
 		rule.ID = v
 	}

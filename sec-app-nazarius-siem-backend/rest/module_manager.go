@@ -726,9 +726,10 @@ func (s *APIServer) handleUpdateModuleStatus(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&request); err != nil {
+		log.Printf("[ERROR] handleUpdateModuleStatus bind JSON: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"error":   "Invalid request: " + err.Error(),
+			"error":   "Invalid request",
 		})
 		return
 	}
@@ -780,9 +781,10 @@ func (s *APIServer) handleBulkUpdateModules(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&request); err != nil {
+		log.Printf("[ERROR] handleBulkUpdateModules bind JSON: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"error":   "Invalid request: " + err.Error(),
+			"error":   "Invalid request",
 		})
 		return
 	}

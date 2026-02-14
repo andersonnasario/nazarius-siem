@@ -17,44 +17,44 @@ const casePoliciesIndex = "siem-case-policies"
 
 // CaseOpenSearch represents a case stored in OpenSearch
 type CaseOpenSearch struct {
-	ID               string     `json:"id"`
-	Title            string     `json:"title"`
-	Description      string     `json:"description"`
-	Severity         string     `json:"severity"`
-	Status           string     `json:"status"`
-	Priority         string     `json:"priority"`
-	Category         string     `json:"category"`
-	AssignedTo       string     `json:"assigned_to"`
-	CreatedBy        string     `json:"created_by"`
-	CreatedAt        time.Time  `json:"created_at"`
-	UpdatedAt        time.Time  `json:"updated_at"`
-	ResolvedAt       *time.Time `json:"resolved_at,omitempty"`
-	ClosedAt         *time.Time `json:"closed_at,omitempty"`
-	DueDate          *time.Time `json:"due_date,omitempty"`
-	Tags             []string   `json:"tags"`
-	RelatedAlerts    []string   `json:"related_alerts"`
-	RelatedEvents    []string   `json:"related_events"`
-	RelatedPlaybooks []string   `json:"related_playbooks"`
-	Notes            string     `json:"notes"`
-	Resolution       string     `json:"resolution"`
-	Source           string     `json:"source"`
-	SourceID         string     `json:"source_id"`
-	AccountID        string     `json:"account_id,omitempty"` // AWS Account ID para filtro de escopo
-	TimeToDetect     int        `json:"time_to_detect"`
-	TimeToRespond    int        `json:"time_to_respond"`
-	TimeToResolve    int        `json:"time_to_resolve"`
-	SLABreach        bool       `json:"sla_breach"`
-	SLADeadline      *time.Time `json:"sla_deadline,omitempty"`
-	Evidence         []CaseEvidence         `json:"evidence,omitempty"`
-	Timeline         []CaseTimelineEntry    `json:"timeline,omitempty"`
-	Indicators       map[string]interface{} `json:"indicators,omitempty"`
-	MitreTactics     []string               `json:"mitre_tactics,omitempty"`
-	MitreTechniques  []string               `json:"mitre_techniques,omitempty"`
-	AffectedAssets   []string               `json:"affected_assets,omitempty"`
-	Checklist        []CaseChecklistItem    `json:"checklist,omitempty"`
-	Recommendations  []CaseRecommendation    `json:"recommendations,omitempty"`
-	Summary          *CaseSummary           `json:"summary,omitempty"`
-	ResolutionTimeMinutes int               `json:"resolution_time_minutes,omitempty"`
+	ID                    string                 `json:"id"`
+	Title                 string                 `json:"title"`
+	Description           string                 `json:"description"`
+	Severity              string                 `json:"severity"`
+	Status                string                 `json:"status"`
+	Priority              string                 `json:"priority"`
+	Category              string                 `json:"category"`
+	AssignedTo            string                 `json:"assigned_to"`
+	CreatedBy             string                 `json:"created_by"`
+	CreatedAt             time.Time              `json:"created_at"`
+	UpdatedAt             time.Time              `json:"updated_at"`
+	ResolvedAt            *time.Time             `json:"resolved_at,omitempty"`
+	ClosedAt              *time.Time             `json:"closed_at,omitempty"`
+	DueDate               *time.Time             `json:"due_date,omitempty"`
+	Tags                  []string               `json:"tags"`
+	RelatedAlerts         []string               `json:"related_alerts"`
+	RelatedEvents         []string               `json:"related_events"`
+	RelatedPlaybooks      []string               `json:"related_playbooks"`
+	Notes                 string                 `json:"notes"`
+	Resolution            string                 `json:"resolution"`
+	Source                string                 `json:"source"`
+	SourceID              string                 `json:"source_id"`
+	AccountID             string                 `json:"account_id,omitempty"` // AWS Account ID para filtro de escopo
+	TimeToDetect          int                    `json:"time_to_detect"`
+	TimeToRespond         int                    `json:"time_to_respond"`
+	TimeToResolve         int                    `json:"time_to_resolve"`
+	SLABreach             bool                   `json:"sla_breach"`
+	SLADeadline           *time.Time             `json:"sla_deadline,omitempty"`
+	Evidence              []CaseEvidence         `json:"evidence,omitempty"`
+	Timeline              []CaseTimelineEntry    `json:"timeline,omitempty"`
+	Indicators            map[string]interface{} `json:"indicators,omitempty"`
+	MitreTactics          []string               `json:"mitre_tactics,omitempty"`
+	MitreTechniques       []string               `json:"mitre_techniques,omitempty"`
+	AffectedAssets        []string               `json:"affected_assets,omitempty"`
+	Checklist             []CaseChecklistItem    `json:"checklist,omitempty"`
+	Recommendations       []CaseRecommendation   `json:"recommendations,omitempty"`
+	Summary               *CaseSummary           `json:"summary,omitempty"`
+	ResolutionTimeMinutes int                    `json:"resolution_time_minutes,omitempty"`
 }
 
 // EnsureCasePoliciesIndex creates the index for case policies if it doesn't exist
@@ -353,7 +353,8 @@ func (s *APIServer) handleGetCaseOpenSearch(c *gin.Context) {
 func (s *APIServer) handleCreateCaseOpenSearch(c *gin.Context) {
 	var caseObj CaseOpenSearch
 	if err := c.ShouldBindJSON(&caseObj); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] create case bind: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -433,13 +434,30 @@ func (s *APIServer) handleCreateCaseOpenSearch(c *gin.Context) {
 }
 
 // handleUpdateCaseOpenSearch updates a case in OpenSearch
+// allowedCaseUpdateFields defines the fields that can be updated via the API
+var allowedCaseUpdateFields = map[string]bool{
+	"title": true, "description": true, "status": true, "severity": true,
+	"priority": true, "category": true, "assigned_to": true, "tags": true,
+	"notes": true, "resolution": true, "related_alerts": true,
+	"related_events": true, "related_playbooks": true, "timeline": true,
+	"sla_breach": true, "evidence": true, "recommendations": true,
+}
+
 func (s *APIServer) handleUpdateCaseOpenSearch(c *gin.Context) {
 	id := c.Param("id")
 
-	var updates map[string]interface{}
-	if err := c.ShouldBindJSON(&updates); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	var rawUpdates map[string]interface{}
+	if err := c.ShouldBindJSON(&rawUpdates); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data"})
 		return
+	}
+
+	// Filter updates to only allow whitelisted fields (prevent mass assignment)
+	updates := make(map[string]interface{})
+	for key, value := range rawUpdates {
+		if allowedCaseUpdateFields[key] {
+			updates[key] = value
+		}
 	}
 
 	updates["updated_at"] = time.Now().Format(time.RFC3339)
@@ -642,17 +660,17 @@ func (s *APIServer) handleGetCaseStatisticsOpenSearch(c *gin.Context) {
 	json.NewDecoder(res.Body).Decode(&result)
 
 	stats := gin.H{
-		"total":             0,
-		"new":               0,
-		"in_progress":       0,
-		"resolved":          0,
-		"closed":            0,
-		"by_severity":       map[string]int{},
-		"by_category":       map[string]int{},
-		"by_assigned":       map[string]int{},
-		"sla_breaches":      0,
+		"total":               0,
+		"new":                 0,
+		"in_progress":         0,
+		"resolved":            0,
+		"closed":              0,
+		"by_severity":         map[string]int{},
+		"by_category":         map[string]int{},
+		"by_assigned":         map[string]int{},
+		"sla_breaches":        0,
 		"avg_time_to_resolve": 0.0,
-		"trend_data":        []map[string]interface{}{},
+		"trend_data":          []map[string]interface{}{},
 	}
 
 	if hits, ok := result["hits"].(map[string]interface{}); ok {
@@ -765,7 +783,8 @@ func (s *APIServer) handleCreateCaseFromEvent(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] create case from event bind: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -1239,4 +1258,3 @@ func getBoolVal(m map[string]interface{}, key string) bool {
 	}
 	return false
 }
-

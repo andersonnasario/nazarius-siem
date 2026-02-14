@@ -98,16 +98,8 @@ const Cases = () => {
         casesAPI.getStatistics(),
       ]);
       
-      console.log('[CASES] Response:', casesResponse);
-      console.log('[CASES] Data:', casesResponse.data);
-      console.log('[CASES] Cases array:', casesResponse.data?.cases);
-      console.log('[CASES] Cases length:', casesResponse.data?.cases?.length);
-      
       if (casesResponse.data && casesResponse.data.cases) {
-        console.log('[CASES] Setting cases:', casesResponse.data.cases);
         setCases(casesResponse.data.cases);
-      } else {
-        console.error('[CASES] No cases in response!');
       }
       
       if (statsResponse.data) {

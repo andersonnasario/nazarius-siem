@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"regexp"
 	"strings"
@@ -202,7 +203,8 @@ func (s *APIServer) handleGetDLPPolicy(c *gin.Context) {
 func (s *APIServer) handleCreateDLPPolicy(c *gin.Context) {
 	var policy DLPPolicy
 	if err := c.ShouldBindJSON(&policy); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleCreateDLPPolicy bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -218,7 +220,8 @@ func (s *APIServer) handleUpdateDLPPolicy(c *gin.Context) {
 	policyID := c.Param("id")
 	var policy DLPPolicy
 	if err := c.ShouldBindJSON(&policy); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleUpdateDLPPolicy bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -277,7 +280,8 @@ func (s *APIServer) handleUpdateDLPIncident(c *gin.Context) {
 	incidentID := c.Param("id")
 	var updates map[string]interface{}
 	if err := c.ShouldBindJSON(&updates); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleUpdateDLPIncident bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -301,7 +305,8 @@ func (s *APIServer) handleUpdateDLPIncident(c *gin.Context) {
 func (s *APIServer) handleInspectContent(c *gin.Context) {
 	var inspection ContentInspection
 	if err := c.ShouldBindJSON(&inspection); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleInspectContent bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -317,7 +322,8 @@ func (s *APIServer) handleGetDLPPatterns(c *gin.Context) {
 func (s *APIServer) handleCreateDLPPattern(c *gin.Context) {
 	var pattern DLPPattern
 	if err := c.ShouldBindJSON(&pattern); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleCreateDLPPattern bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -342,7 +348,8 @@ func (s *APIServer) handleClassifyData(c *gin.Context) {
 	}
 	
 	if err := c.ShouldBindJSON(&request); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleClassifyData bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 

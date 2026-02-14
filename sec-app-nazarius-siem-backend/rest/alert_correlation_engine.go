@@ -765,7 +765,8 @@ func (s *APIServer) handleUpdateCorrelatedIncident(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&update); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleUpdateCorrelatedIncident bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -895,7 +896,8 @@ func (s *APIServer) handleCreateCaseFromIncident(c *gin.Context) {
 		s.opensearch.Index.WithRefresh("true"),
 	)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleCreateCaseFromIncident index case: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 	defer res.Body.Close()

@@ -139,25 +139,14 @@ const Vulnerabilities = () => {
 
   const handleViewAsset = async (assetId) => {
     try {
-      console.log('🔍 Loading asset with ID:', assetId);
-      console.log('🔗 API URL will be:', `/vulnerabilities/assets/${encodeURIComponent(assetId)}`);
-      
       const response = await vulnerabilityAPI.getAsset(assetId);
-      console.log('📥 Full API response:', JSON.stringify(response.data, null, 2));
       
       // A API retorna { asset: {...}, vulnerabilities: [...], source: "opensearch" }
       const assetData = response.data.asset || response.data;
       const vulnList = response.data.vulnerabilities || assetData.vulnerabilities || [];
       
-      console.log('✅ Asset data:', assetData);
-      console.log('📊 Vulnerabilities found:', vulnList.length);
-      if (vulnList.length > 0) {
-        console.log('📊 First vulnerability:', vulnList[0]);
-      }
-      
       // Merge com dados do card original para ter os counts
       const localAsset = assets.find(a => (a.resource_id || a.id) === assetId);
-      console.log('📋 Local asset data:', localAsset);
       
       setSelectedAsset({
         ...localAsset, // Dados do card (counts, etc.)
@@ -166,12 +155,9 @@ const Vulnerabilities = () => {
       });
       setAssetDialogOpen(true);
     } catch (err) {
-      console.error('❌ Error loading asset:', err);
-      console.error('❌ Error details:', err.response?.data || err.message);
       // Fallback: buscar no array local
       const localAsset = assets.find(a => (a.resource_id || a.id) === assetId);
       if (localAsset) {
-        console.log('📂 Using local asset data:', localAsset);
         setSelectedAsset({
           ...localAsset,
           vulnerabilities: [],
@@ -190,8 +176,6 @@ const Vulnerabilities = () => {
     try {
       // Sincronizar com Security Hub (que já tem dados do Inspector)
       const response = await vulnerabilityAPI.syncFromSecurityHub();
-      console.log('✅ Sync response:', response.data);
-      
       // Mostrar feedback
       alert('🔄 Sincronização iniciada!\n\nOs dados do AWS Security Hub estão sendo sincronizados em background.\n\nAtualize a página em alguns segundos para ver os novos dados.');
       

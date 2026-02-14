@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { safeUrl } from '../utils/security';
 import {
   Box,
   Grid,
@@ -655,7 +656,7 @@ const AlertDetails = () => {
                     <Button
                       size="small"
                       startIcon={<OpenInNewIcon />}
-                      href={rec.aws_doc}
+                      href={safeUrl(rec.aws_doc)}
                       target="_blank"
                     >
                       Documentação AWS

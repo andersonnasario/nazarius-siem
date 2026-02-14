@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"log"
 	"net/http"
 	"time"
 
@@ -220,7 +221,8 @@ func (s *APIServer) handleGetBaselines(c *gin.Context) {
 func (s *APIServer) handleCreateBaseline(c *gin.Context) {
 	var baseline Baseline
 	if err := c.ShouldBindJSON(&baseline); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleCreateBaseline bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -245,7 +247,8 @@ func (s *APIServer) handleGetFIMRules(c *gin.Context) {
 func (s *APIServer) handleCreateFIMRule(c *gin.Context) {
 	var rule FIMRule
 	if err := c.ShouldBindJSON(&rule); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleCreateFIMRule bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -275,7 +278,8 @@ func (s *APIServer) handleAcknowledgeChange(c *gin.Context) {
 	}
 	
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleAcknowledgeChange bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 

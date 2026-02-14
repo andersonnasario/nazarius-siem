@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -662,9 +663,10 @@ func (s *APIServer) handleListThreatHuntHypotheses(c *gin.Context) {
 func (s *APIServer) handleCreateThreatHuntHypothesis(c *gin.Context) {
 	var hyp ThreatHuntHypothesis
 	if err := c.ShouldBindJSON(&hyp); err != nil {
+		log.Printf("[ERROR] handleCreateThreatHuntHypothesis bind JSON: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"error":   err.Error(),
+			"error":   "Invalid request",
 		})
 		return
 	}
@@ -725,9 +727,10 @@ func (s *APIServer) handleUpdateThreatHuntHypothesis(c *gin.Context) {
 
 	var updates ThreatHuntHypothesis
 	if err := c.ShouldBindJSON(&updates); err != nil {
+		log.Printf("[ERROR] handleUpdateThreatHuntHypothesis bind JSON: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"error":   err.Error(),
+			"error":   "Invalid request",
 		})
 		return
 	}
@@ -794,9 +797,10 @@ func (s *APIServer) handleListQueryTemplates(c *gin.Context) {
 func (s *APIServer) handleExecuteThreatHuntQuery(c *gin.Context) {
 	var query ThreatHuntQuery
 	if err := c.ShouldBindJSON(&query); err != nil {
+		log.Printf("[ERROR] handleExecuteThreatHuntQuery bind JSON: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"error":   err.Error(),
+			"error":   "Invalid request",
 		})
 		return
 	}
@@ -911,9 +915,10 @@ func (s *APIServer) handleListThreatHuntNotebooks(c *gin.Context) {
 func (s *APIServer) handleCreateThreatHuntNotebook(c *gin.Context) {
 	var nb ThreatHuntNotebook
 	if err := c.ShouldBindJSON(&nb); err != nil {
+		log.Printf("[ERROR] handleCreateThreatHuntNotebook bind JSON: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"error":   err.Error(),
+			"error":   "Invalid request",
 		})
 		return
 	}
@@ -954,9 +959,10 @@ func (s *APIServer) handleListThreatScheduledHunts(c *gin.Context) {
 func (s *APIServer) handleCreateThreatScheduledHunt(c *gin.Context) {
 	var hunt ScheduledHunt
 	if err := c.ShouldBindJSON(&hunt); err != nil {
+		log.Printf("[ERROR] handleCreateThreatScheduledHunt bind JSON: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"success": false,
-			"error":   err.Error(),
+			"error":   "Invalid request",
 		})
 		return
 	}

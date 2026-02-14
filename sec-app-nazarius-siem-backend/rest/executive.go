@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -517,7 +518,8 @@ func (s *APIServer) handleGetKPIs(c *gin.Context) {
 func (s *APIServer) handleGenerateExecutiveReport(c *gin.Context) {
 	var req ReportRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleGenerateExecutiveReport bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 

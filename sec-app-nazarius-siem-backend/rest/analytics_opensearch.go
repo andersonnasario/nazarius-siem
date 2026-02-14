@@ -220,7 +220,8 @@ func (s *APIServer) handleCleanupDuplicateAnomalies(c *gin.Context) {
 		s.opensearch.Search.WithBody(strings.NewReader(query)),
 	)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleCleanupDuplicateAnomalies search: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})
 		return
 	}
 	defer res.Body.Close()

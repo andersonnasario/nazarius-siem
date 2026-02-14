@@ -315,7 +315,8 @@ func (s *APIServer) handleGetPlaybookOpenSearch(c *gin.Context) {
 func (s *APIServer) handleCreatePlaybookOpenSearch(c *gin.Context) {
 	var pb PlaybookOpenSearch
 	if err := c.ShouldBindJSON(&pb); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleCreatePlaybookOpenSearch bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -390,7 +391,8 @@ func (s *APIServer) handleUpdatePlaybookOpenSearch(c *gin.Context) {
 
 	var updates map[string]interface{}
 	if err := c.ShouldBindJSON(&updates); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] handleUpdatePlaybookOpenSearch bind JSON: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 

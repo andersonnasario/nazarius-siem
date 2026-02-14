@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -101,6 +102,24 @@ func NewAPIServer(config *Config) (*APIServer, error) {
 	router := gin.New()
 	router.Use(gin.Recovery())
 
+	// Configure trusted proxies for secure IP extraction
+	// Set TRUSTED_PROXIES env var with comma-separated CIDRs (e.g. "10.0.0.0/8,172.16.0.0/12")
+	trustedProxies := os.Getenv("TRUSTED_PROXIES")
+	if trustedProxies != "" {
+		proxies := strings.Split(trustedProxies, ",")
+		for i, p := range proxies {
+			proxies[i] = strings.TrimSpace(p)
+		}
+		if err := router.SetTrustedProxies(proxies); err != nil {
+			log.Printf("⚠️  Failed to set trusted proxies: %v", err)
+		} else {
+			log.Printf("🔒 Trusted proxies configured: %v", proxies)
+		}
+	} else {
+		// Default: trust only loopback/private ranges
+		router.SetTrustedProxies([]string{"127.0.0.1", "::1", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"})
+	}
+
 	// Inicializar componentes de segurança
 	rateLimiter := NewRateLimiter(rate.Limit(100), 200) // 100 req/s, burst 200
 	bruteForceProtection := NewBruteForceProtection()
@@ -170,8 +189,9 @@ func (s *APIServer) setupMiddlewares() {
 	// 3. CORS with security best practices
 	allowedOrigins := s.config.CORS.AllowOrigins
 	if len(allowedOrigins) == 0 {
-		// Allow localhost on both ports for development
-		allowedOrigins = []string{"http://localhost:3000", "http://localhost:8080", "*"}
+		// Default to localhost for development only - set CORS_ORIGINS in production
+		allowedOrigins = []string{"http://localhost:3000", "http://localhost:8080"}
+		log.Println("⚠️  CORS_ORIGINS not set, defaulting to localhost only. Set CORS_ORIGINS for production.")
 	}
 	s.router.Use(CORSMiddleware(allowedOrigins))
 
@@ -1451,6 +1471,14 @@ func (s *APIServer) Start() error {
 
 func main() {
 	config := loadConfig()
+
+	// =========================================================================
+	// VALIDATE CRITICAL SECURITY CONFIGURATION
+	// =========================================================================
+	if config.JWT.Secret == "" || len(config.JWT.Secret) < 32 {
+		log.Fatal("FATAL: JWT_SECRET environment variable must be set with at least 32 characters. " +
+			"Generate one with: openssl rand -base64 48")
+	}
 
 	// =========================================================================
 	// CONNECT TO DATABASE

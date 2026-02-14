@@ -96,7 +96,6 @@ const Events = () => {
       const status = response.data || {};
       setDataSource(status.data_source || 'mock');
     } catch (error) {
-      console.log('Could not load data source status');
       setDataSource('mock');
     }
   };
@@ -191,21 +190,16 @@ const Events = () => {
       setExportMenuAnchor(null);
       setLoading(true);
       
-      console.log('[EXPORT] Selected IDs:', selectedEventIds);
-      console.log('[EXPORT] Total events in table:', events.length);
-      
       // Se houver eventos selecionados, exportar apenas eles
       if (selectedEventIds.length > 0) {
-        console.log('[EXPORT] Exporting selected events only');
         const selectedEvents = events.filter(event => selectedEventIds.includes(event.id));
-        console.log('[EXPORT] Filtered events:', selectedEvents.length);
         exportSelectedEvents(selectedEvents, format);
         showSnackbar(`${selectedEventIds.length} evento(s) selecionado(s) exportado(s) com sucesso em ${format.toUpperCase()}!`, 'success');
         setLoading(false);
         return;
       }
       
-      console.log('[EXPORT] No selection, exporting all with filters');
+      // Exportar todos com filtros atuais
 
       // Caso contrário, exportar com filtros atuais
       const params = {
@@ -813,7 +807,6 @@ const Events = () => {
               <Button
                 size="small"
                 onClick={() => {
-                  console.log('[CLEAR] Clearing selection');
                   setSelectedEventIds([]);
                 }}
                 sx={{ ml: 2, color: 'inherit' }}
@@ -837,9 +830,6 @@ const Events = () => {
           checkboxSelection
           rowSelectionModel={selectedEventIds}
           onRowSelectionModelChange={(newSelection) => {
-            console.log('[SELECTION] New selection:', newSelection);
-            console.log('[SELECTION] Type:', typeof newSelection);
-            console.log('[SELECTION] Is Array:', Array.isArray(newSelection));
             setSelectedEventIds(newSelection);
           }}
           keepNonExistentRowsSelected

@@ -387,25 +387,24 @@ func (s *APIServer) fetchAlertsFromES(c *gin.Context, pageSize, pageNumber int, 
 			},
 		})
 	}
-	// Busca por texto (CVE, nome, descrição)
+	// Busca por texto (CVE, nome, descrição) - sanitized against injection
 	if search != "" {
-		// Verificar se é uma busca por CVE (formato: CVE-YYYY-NNNNN)
-		searchUpper := strings.ToUpper(strings.TrimSpace(search))
-		if strings.HasPrefix(searchUpper, "CVE-") {
-			// Busca exata por CVE usando query_string com frase exata
-			// O formato "\"CVE-XXXX-XXXXX\"" força match de frase exata
+		cleanUpper := strings.ToUpper(strings.TrimSpace(search))
+		if strings.HasPrefix(cleanUpper, "CVE-") {
+			cveClean := sanitizeAlphanumeric(cleanUpper)
 			must = append(must, map[string]interface{}{
 				"query_string": map[string]interface{}{
-					"query":            "\"" + searchUpper + "\"",
+					"query":            "\"" + cveClean + "\"",
 					"fields":           []string{"name", "description", "source_id", "category", "title"},
 					"default_operator": "AND",
 				},
 			})
 		} else {
-			// Busca geral com fuzzy
+			// Busca geral com fuzzy (multi_match is safe, no DSL injection)
+			sanitizedSearch := sanitizeSearchQuery(search)
 			must = append(must, map[string]interface{}{
 				"multi_match": map[string]interface{}{
-					"query":     search,
+					"query":     sanitizedSearch,
 					"fields":    []string{"name", "name.keyword", "description", "source_id", "category", "title"},
 					"type":      "best_fields",
 					"fuzziness": "AUTO",
@@ -559,7 +558,8 @@ func (s *APIServer) handleCreateCaseFromAlert(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] create case from alert bind: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -773,7 +773,8 @@ func (s *APIServer) handleUpdateAlertStatus(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] update alert status bind: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -998,13 +999,15 @@ func generateMockAlerts() []Alert {
 func (s *APIServer) handleCreateAlert(c *gin.Context) {
 	var alert Alert
 	if err := c.ShouldBindJSON(&alert); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] create alert bind: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
 	// Validar alert
 	if err := validateAlert(&alert); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("[ERROR] create alert validation: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
@@ -1036,14 +1039,30 @@ func (s *APIServer) handleCreateAlert(c *gin.Context) {
 	c.JSON(http.StatusCreated, alert)
 }
 
+// allowedAlertUpdateFields defines the fields that can be updated via the API
+var allowedAlertUpdateFields = map[string]bool{
+	"status": true, "severity": true, "assigned_to": true,
+	"notes": true, "resolution": true, "acknowledged": true,
+	"acknowledged_by": true, "tags": true, "category": true,
+	"priority": true, "false_positive": true, "suppressed": true,
+}
+
 func (s *APIServer) handleUpdateAlert(c *gin.Context) {
 	id := c.Param("id")
 
 	// Accept partial updates
-	var updates map[string]interface{}
-	if err := c.ShouldBindJSON(&updates); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	var rawUpdates map[string]interface{}
+	if err := c.ShouldBindJSON(&rawUpdates); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request data"})
 		return
+	}
+
+	// Filter updates to only allow whitelisted fields (prevent mass assignment)
+	updates := make(map[string]interface{})
+	for key, value := range rawUpdates {
+		if allowedAlertUpdateFields[key] {
+			updates[key] = value
+		}
 	}
 
 	// Add updated timestamp
@@ -2320,19 +2339,21 @@ func (s *APIServer) handleExportAlerts(c *gin.Context) {
 			})
 		}
 		if search != "" {
-			searchUpper := strings.ToUpper(strings.TrimSpace(search))
-			if strings.HasPrefix(searchUpper, "CVE-") {
+			cleanUpper := strings.ToUpper(strings.TrimSpace(search))
+			if strings.HasPrefix(cleanUpper, "CVE-") {
+				cveClean := sanitizeAlphanumeric(cleanUpper)
 				must = append(must, map[string]interface{}{
 					"query_string": map[string]interface{}{
-						"query":            "\"" + searchUpper + "\"",
+						"query":            "\"" + cveClean + "\"",
 						"fields":           []string{"name", "description", "source_id", "category", "title"},
 						"default_operator": "AND",
 					},
 				})
 			} else {
+				sanitizedSearch := sanitizeSearchQuery(search)
 				must = append(must, map[string]interface{}{
 					"multi_match": map[string]interface{}{
-						"query":  search,
+						"query":  sanitizedSearch,
 						"fields": []string{"name", "description", "source_id", "category", "title"},
 						"type":   "best_fields",
 					},
