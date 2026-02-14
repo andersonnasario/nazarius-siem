@@ -233,7 +233,7 @@ func (s *APIServer) handleCreatePlaybook(c *gin.Context) {
 		playbook.Executions = 0
 		playbook.SuccessRate = 0
 		playbook.AvgResponseTime = "0s"
-		playbook.CreatedBy = "admin" // TODO: Get from JWT token
+		playbook.CreatedBy = getUsernameFromContext(c)
 		c.JSON(http.StatusCreated, playbook)
 		return
 	}
@@ -387,7 +387,7 @@ func (s *APIServer) handleExecutePlaybook(c *gin.Context) {
 	engine := NewPlaybookEngine(s)
 
 	// Executar playbook
-	execution, err := engine.ExecutePlaybook(playbook, triggerData, "admin") // TODO: Get from JWT token
+	execution, err := engine.ExecutePlaybook(playbook, triggerData, getUsernameFromContext(c))
 	if err != nil {
 		log.Printf("[ERROR] handleExecutePlaybook: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal server error"})

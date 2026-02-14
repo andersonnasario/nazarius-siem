@@ -784,7 +784,7 @@ func (s *APIServer) handleUpdateAlertStatus(c *gin.Context) {
 			"doc": map[string]interface{}{
 				"status":     req.Status,
 				"updated_at": time.Now().Format(time.RFC3339),
-				"updated_by": "admin", // TODO: Get from JWT token
+				"updated_by": getUsernameFromContext(c),
 			},
 		}
 
@@ -1902,38 +1902,29 @@ func (s *APIServer) getIncidentCountFromOS(alert Alert) *IncidentCountInfo {
 	}
 
 	// Query para contar alertas similares
-	query := fmt.Sprintf(`{
-		"query": {
-			"bool": {
-				"must": [
-					{"term": {"name.keyword": %q}},
-					{"term": {"source": %q}}
-				]
-			}
+	queryMap := map[string]interface{}{
+		"query": map[string]interface{}{
+			"bool": map[string]interface{}{
+				"must": []map[string]interface{}{
+					{"term": map[string]interface{}{"name.keyword": alert.Name}},
+					{"term": map[string]interface{}{"source": alert.Source}},
+				},
+			},
 		},
-		"aggs": {
-			"last_24h": {
-				"filter": {"range": {"created_at": {"gte": "now-24h"}}}
-			},
-			"last_7d": {
-				"filter": {"range": {"created_at": {"gte": "now-7d"}}}
-			},
-			"last_30d": {
-				"filter": {"range": {"created_at": {"gte": "now-30d"}}}
-			},
-			"unique_resources": {
-				"cardinality": {"field": "resource_id"}
-			},
-			"unique_accounts": {
-				"cardinality": {"field": "account_id"}
-			}
+		"aggs": map[string]interface{}{
+			"last_24h":         map[string]interface{}{"filter": map[string]interface{}{"range": map[string]interface{}{"created_at": map[string]interface{}{"gte": "now-24h"}}}},
+			"last_7d":          map[string]interface{}{"filter": map[string]interface{}{"range": map[string]interface{}{"created_at": map[string]interface{}{"gte": "now-7d"}}}},
+			"last_30d":         map[string]interface{}{"filter": map[string]interface{}{"range": map[string]interface{}{"created_at": map[string]interface{}{"gte": "now-30d"}}}},
+			"unique_resources": map[string]interface{}{"cardinality": map[string]interface{}{"field": "resource_id"}},
+			"unique_accounts":  map[string]interface{}{"cardinality": map[string]interface{}{"field": "account_id"}},
 		},
-		"size": 0
-	}`, alert.Name, alert.Source)
+		"size": 0,
+	}
+	queryJSON, _ := json.Marshal(queryMap)
 
 	res, err := s.opensearch.Search(
 		s.opensearch.Search.WithIndex("siem-alerts"),
-		s.opensearch.Search.WithBody(strings.NewReader(query)),
+		s.opensearch.Search.WithBody(strings.NewReader(string(queryJSON))),
 	)
 	if err != nil {
 		return info
@@ -2006,16 +1997,17 @@ func (s *APIServer) getRelatedCaseFromOS(alertID string) *RelatedCaseInfo {
 	}
 
 	// Buscar link alerta-caso
-	query := fmt.Sprintf(`{
-		"query": {
-			"term": {"alert_id": %q}
+	queryMap := map[string]interface{}{
+		"query": map[string]interface{}{
+			"term": map[string]interface{}{"alert_id": alertID},
 		},
-		"size": 1
-	}`, alertID)
+		"size": 1,
+	}
+	queryJSON, _ := json.Marshal(queryMap)
 
 	res, err := s.opensearch.Search(
 		s.opensearch.Search.WithIndex("siem-alert-case-links"),
-		s.opensearch.Search.WithBody(strings.NewReader(query)),
+		s.opensearch.Search.WithBody(strings.NewReader(string(queryJSON))),
 	)
 	if err != nil {
 		return nil

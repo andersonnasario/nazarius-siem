@@ -224,7 +224,7 @@ func handleGenerateReport(c *gin.Context) {
 		Template:    req.Template,
 		Parameters:  req.Parameters,
 		Format:      req.Format,
-		CreatedBy:   "current-user", // TODO: pegar do context
+		CreatedBy:   getUsernameFromContext(c),
 		CreatedAt:   time.Now(),
 		Status:      "generating",
 	}
@@ -412,7 +412,7 @@ func handleCreateScheduledReport(c *gin.Context) {
 
 	req.ID = "schedule-" + generateID()
 	req.CreatedAt = time.Now()
-	req.CreatedBy = "current-user"
+	req.CreatedBy = getUsernameFromContext(c)
 	req.Enabled = true
 	req.NextRun = calculateNextRun(req.Schedule)
 

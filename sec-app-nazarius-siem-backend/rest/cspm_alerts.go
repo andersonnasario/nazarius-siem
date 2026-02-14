@@ -245,7 +245,7 @@ func initCSPMAlerts() {
 			Type:    ChannelSlack,
 			Enabled: true,
 			Config: ChannelConfig{
-				WebhookURL: "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXX",
+				WebhookURL: "https://hooks.slack.com/services/REPLACE_ME/REPLACE_ME/REPLACE_ME",
 				Channel:    "#security-alerts",
 				Username:   "SIEM Platform",
 				IconEmoji:  ":shield:",
@@ -262,7 +262,7 @@ func initCSPMAlerts() {
 			Type:    ChannelPagerDuty,
 			Enabled: true,
 			Config: ChannelConfig{
-				IntegrationKey: "R0XXXXXXXXXXXXXXXXXXXX",
+				IntegrationKey: "REPLACE_WITH_PAGERDUTY_KEY",
 				RoutingKey:     "critical-security",
 			},
 			CreatedAt:   time.Now().Add(-25 * 24 * time.Hour),
@@ -277,11 +277,11 @@ func initCSPMAlerts() {
 			Type:    ChannelEmail,
 			Enabled: true,
 			Config: ChannelConfig{
-				SMTPHost:     "smtp.gmail.com",
+				SMTPHost:     "smtp.example.com",
 				SMTPPort:     587,
-				SMTPUsername: "alerts@company.com",
-				FromAddress:  "SIEM Platform <alerts@company.com>",
-				ToAddresses:  []string{"security-team@company.com", "soc@company.com"},
+				SMTPUsername: "alerts@example.com",
+				FromAddress:  "SIEM Platform <alerts@example.com>",
+				ToAddresses:  []string{"security-team@example.com", "soc@example.com"},
 			},
 			CreatedAt:   time.Now().Add(-20 * 24 * time.Hour),
 			UpdatedAt:   time.Now().Add(-3 * time.Hour),
@@ -295,11 +295,11 @@ func initCSPMAlerts() {
 			Type:    ChannelWebhook,
 			Enabled: false,
 			Config: ChannelConfig{
-				URL:    "https://api.company.com/security/webhooks/alerts",
+				URL:    "https://api.example.com/webhooks/alerts",
 				Method: "POST",
 				Headers: map[string]string{
 					"Content-Type":  "application/json",
-					"Authorization": "Bearer token123",
+					"Authorization": "Bearer REPLACE_WITH_TOKEN",
 				},
 			},
 			CreatedAt:   time.Now().Add(-15 * 24 * time.Hour),

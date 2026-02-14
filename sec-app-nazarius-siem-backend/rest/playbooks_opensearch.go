@@ -343,7 +343,7 @@ func (s *APIServer) handleCreatePlaybookOpenSearch(c *gin.Context) {
 		}
 	}
 	if pb.CreatedBy == "" {
-		pb.CreatedBy = "admin"
+		pb.CreatedBy = getUsernameFromContext(c)
 	}
 
 	if s.opensearch == nil {

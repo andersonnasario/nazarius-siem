@@ -1195,15 +1195,6 @@ func (s *APIServer) incrementSuppressionMatchCount(ruleID string) {
 // HELPERS
 // ============================================================================
 
-func getUsernameFromContext(c *gin.Context) string {
-	if usernameVal, exists := c.Get("username"); exists {
-		if username, ok := usernameVal.(string); ok {
-			return username
-		}
-	}
-	return "unknown"
-}
-
 func getStringVal(data map[string]interface{}, key string) string {
 	if v, ok := data[key].(string); ok {
 		return v

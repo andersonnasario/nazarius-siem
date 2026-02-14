@@ -233,15 +233,7 @@ func (s *APIServer) handleTriageAlertAction(c *gin.Context) {
 		return
 	}
 
-	// Get current user from context
-	user := "admin" // Default
-	if u, exists := c.Get("user"); exists {
-		if userMap, ok := u.(map[string]interface{}); ok {
-			if username, ok := userMap["username"].(string); ok {
-				user = username
-			}
-		}
-	}
+	user := getUsernameFromContext(c)
 
 	// Build update based on action
 	var newStatus string
@@ -375,15 +367,7 @@ func (s *APIServer) handleBulkTriageAction(c *gin.Context) {
 		return
 	}
 
-	// Get current user
-	user := "admin"
-	if u, exists := c.Get("user"); exists {
-		if userMap, ok := u.(map[string]interface{}); ok {
-			if username, ok := userMap["username"].(string); ok {
-				user = username
-			}
-		}
-	}
+	user := getUsernameFromContext(c)
 
 	successCount := 0
 	failedCount := 0

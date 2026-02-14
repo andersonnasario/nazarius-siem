@@ -770,3 +770,23 @@ func (r *AuthRepository) DeleteUser(ctx context.Context, userID string) error {
 	}
 	return nil
 }
+
+// ============================================================================
+// AUDIT LOG
+// ============================================================================
+
+// InsertAuditLog writes an entry to the audit_log table.
+// This is used by the AuditMiddleware to persist sensitive operations.
+func (r *AuthRepository) InsertAuditLog(ctx context.Context, userID, username, action, resourceType, resourceID, ipAddress, userAgent string, success bool, errorMsg string) error {
+	query := `
+		INSERT INTO audit_log (user_id, username, action, resource_type, resource_id, ip_address, user_agent, success, error_message)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
+
+	var uid interface{}
+	if userID != "" {
+		uid = userID
+	}
+
+	_, err := r.db.ExecContext(ctx, query, uid, username, action, resourceType, resourceID, ipAddress, userAgent, success, errorMsg)
+	return err
+}

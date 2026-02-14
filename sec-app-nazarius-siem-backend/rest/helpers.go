@@ -1,9 +1,12 @@
 package main
 
 import (
+	"net/url"
 	"os"
 	"regexp"
 	"strings"
+
+	"github.com/gin-gonic/gin"
 )
 
 // =============================================================================
@@ -97,6 +100,52 @@ func internalError(c interface{ JSON(int, interface{}) }, logger interface{ Prin
 	c.JSON(statusCode, map[string]interface{}{
 		"error": publicMsg,
 	})
+}
+
+// getUsernameFromContext extracts the authenticated username from the Gin context.
+// Falls back to "system" if no user is set (e.g., unauthenticated or internal calls).
+// This should be used instead of hardcoding "admin" or "current-user".
+func getUsernameFromContext(c *gin.Context) string {
+	if username, exists := c.Get("username"); exists {
+		if u, ok := username.(string); ok && u != "" {
+			return u
+		}
+	}
+	return "system"
+}
+
+// getUserIDFromContext extracts the authenticated user ID from the Gin context.
+func getUserIDFromContext(c *gin.Context) string {
+	if userID, exists := c.Get("user_id"); exists {
+		if id, ok := userID.(string); ok && id != "" {
+			return id
+		}
+	}
+	return ""
+}
+
+// validateURL checks if a string is a valid URL with an allowed scheme (http/https).
+// Returns true if valid, false otherwise. Use this before passing user-supplied URLs
+// to external services or rendering them in responses.
+func validateURL(rawURL string) bool {
+	if rawURL == "" {
+		return false
+	}
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return false
+	}
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return false
+	}
+	if u.Host == "" {
+		return false
+	}
+	// Reject URLs longer than 2048 characters (reasonable limit)
+	if len(rawURL) > 2048 {
+		return false
+	}
+	return true
 }
 
 // getActiveAWSConnection returns the first active AWS connection from the STS Manager.

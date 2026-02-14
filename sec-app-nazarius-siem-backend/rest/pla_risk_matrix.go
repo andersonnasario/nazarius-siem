@@ -809,7 +809,7 @@ func (s *APIServer) handleCreatePLAAssessment(c *gin.Context) {
 		Status:             "pending",
 		CreatedAt:          time.Now(),
 		UpdatedAt:          time.Now(),
-		CreatedBy:          "admin", // TODO: Get from JWT
+		CreatedBy:          getUsernameFromContext(c),
 		AssignedTo:         req.AssignedTo,
 		Notes:              req.Notes,
 	}
@@ -940,7 +940,7 @@ func (s *APIServer) handleUpdatePLAAssessment(c *gin.Context) {
 		if acceptedRisk {
 			now := time.Now()
 			assessment.AcceptedAt = &now
-			assessment.AcceptedBy = "admin" // TODO: Get from JWT
+			assessment.AcceptedBy = getUsernameFromContext(c)
 			if reason, ok := updates["acceptance_reason"].(string); ok {
 				assessment.AcceptanceReason = reason
 			}
@@ -1000,7 +1000,7 @@ func (s *APIServer) handleAddGuardRailToAssessment(c *gin.Context) {
 		Status:             status,
 		Evidence:           req.Evidence,
 		VerifiedAt:         &now,
-		VerifiedBy:         "admin",
+		VerifiedBy:         getUsernameFromContext(c),
 	})
 	
 	// Recalculate risk

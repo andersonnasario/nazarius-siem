@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	neturl "net/url"
 	"os"
 	"strings"
 	"sync"
@@ -508,10 +509,15 @@ func (tim *ThreatIntelManager) queryOTXDomain(domain string, apiKey string) (map
 }
 
 func (tim *ThreatIntelManager) queryURLhaus(url string) (map[string]interface{}, error) {
+	// Validate URL before sending to external service
+	if !validateURL(url) {
+		return nil, fmt.Errorf("invalid URL format")
+	}
+
 	resp, err := tim.httpClient.Post(
 		"https://urlhaus-api.abuse.ch/v1/url/",
 		"application/x-www-form-urlencoded",
-		strings.NewReader(fmt.Sprintf("url=%s", url)),
+		strings.NewReader("url="+neturl.QueryEscape(url)),
 	)
 	if err != nil {
 		return nil, err

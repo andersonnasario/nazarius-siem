@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -742,21 +743,63 @@ func (s *APIServer) AuditMiddleware() gin.HandlerFunc {
 		duration := time.Since(start)
 
 		// Only log sensitive operations or errors
-		if c.Writer.Status() >= 400 || isSensitiveEndpoint(c.Request.URL.Path) {
+		statusCode := c.Writer.Status()
+		if statusCode >= 400 || isSensitiveEndpoint(c.Request.URL.Path) {
 			s.logger.Printf(
 				"[AUDIT] method=%s path=%s status=%d duration=%v user_id=%v username=%v ip=%s",
 				c.Request.Method,
 				c.Request.URL.Path,
-				c.Writer.Status(),
+				statusCode,
 				duration,
 				userID,
 				username,
 				c.ClientIP(),
 			)
 
-			// TODO: Store in audit_log table
+			// Persist to audit_log table (non-blocking)
+			if s.authRepo != nil {
+				go func() {
+					uid, _ := userID.(string)
+					uname, _ := username.(string)
+					action := c.Request.Method + " " + c.Request.URL.Path
+					success := statusCode < 400
+					errMsg := ""
+					if !success {
+						errMsg = fmt.Sprintf("HTTP %d", statusCode)
+					}
+					// Extract resource type and ID from URL path
+					resourceType, resourceID := parseResourceFromPath(c.Request.URL.Path)
+					_ = s.authRepo.InsertAuditLog(
+						context.Background(),
+						uid, uname, action,
+						resourceType, resourceID,
+						c.ClientIP(),
+						c.Request.UserAgent(),
+						success, errMsg,
+					)
+				}()
+			}
 		}
 	}
+}
+
+// parseResourceFromPath extracts resource type and ID from a URL path.
+// e.g. "/api/v1/users/abc-123" → ("users", "abc-123")
+func parseResourceFromPath(path string) (string, string) {
+	parts := strings.Split(strings.Trim(path, "/"), "/")
+	// Skip "api" and "v1" prefix
+	if len(parts) >= 3 && parts[0] == "api" {
+		parts = parts[2:] // skip "api/v1"
+	}
+	if len(parts) == 0 {
+		return "", ""
+	}
+	resourceType := parts[0]
+	resourceID := ""
+	if len(parts) >= 2 {
+		resourceID = parts[1]
+	}
+	return resourceType, resourceID
 }
 
 // isSensitiveEndpoint checks if an endpoint should be audited

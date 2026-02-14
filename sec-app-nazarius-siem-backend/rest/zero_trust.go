@@ -392,7 +392,7 @@ func (s *APIServer) handleCreateZeroTrustPolicy(c *gin.Context) {
 		policy.Priority = 10
 	}
 	if policy.CreatedBy == "" {
-		policy.CreatedBy = "admin"
+		policy.CreatedBy = getUsernameFromContext(c)
 	}
 
 	// Initialize counters

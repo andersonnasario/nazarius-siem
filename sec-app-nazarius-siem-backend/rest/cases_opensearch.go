@@ -378,7 +378,7 @@ func (s *APIServer) handleCreateCaseOpenSearch(c *gin.Context) {
 		}
 	}
 	if caseObj.CreatedBy == "" {
-		caseObj.CreatedBy = "admin"
+		caseObj.CreatedBy = getUsernameFromContext(c)
 	}
 
 	// Atribuir account_id do escopo do usuário (se não foi fornecido)
@@ -864,7 +864,7 @@ func (s *APIServer) handleCreateCaseFromEvent(c *gin.Context) {
 		}
 	}
 	if caseObj.CreatedBy == "" {
-		caseObj.CreatedBy = "admin"
+		caseObj.CreatedBy = getUsernameFromContext(c)
 	}
 
 	// Atribuir account_id do escopo do usuário

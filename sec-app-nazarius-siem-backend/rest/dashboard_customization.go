@@ -153,7 +153,7 @@ var widgetTypes = []WidgetType{
 func handleListDashboards(c *gin.Context) {
 	userID := c.Query("user_id")
 	if userID == "" {
-		userID = "current-user" // TODO: pegar do context
+		userID = getUsernameFromContext(c)
 	}
 
 	// Mock data
@@ -246,7 +246,7 @@ func handleCreateDashboard(c *gin.Context) {
 	}
 
 	req.ID = "dash-" + generateID()
-	req.UserID = "current-user" // TODO: pegar do context
+	req.UserID = getUsernameFromContext(c)
 	req.CreatedAt = time.Now()
 	req.UpdatedAt = time.Now()
 
@@ -323,7 +323,7 @@ func handleCreateFromTemplate(c *gin.Context) {
 		ID:          "dash-" + generateID(),
 		Name:        template.Name + " (Copy)",
 		Description: template.Description,
-		UserID:      "current-user",
+		UserID:      getUsernameFromContext(c),
 		Widgets:     template.Widgets,
 		IsDefault:   false,
 		IsPublic:    false,
@@ -507,7 +507,7 @@ func handleImportDashboard(c *gin.Context) {
 	}
 
 	dashboard.ID = "dash-" + generateID()
-	dashboard.UserID = "current-user"
+	dashboard.UserID = getUsernameFromContext(c)
 	dashboard.CreatedAt = time.Now()
 	dashboard.UpdatedAt = time.Now()
 

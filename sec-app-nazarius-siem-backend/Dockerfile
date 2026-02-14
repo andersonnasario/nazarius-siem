@@ -1,5 +1,5 @@
 # Build the Go API
-FROM golang:1.23-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
 
@@ -21,7 +21,7 @@ RUN export GOTOOLCHAIN=auto && \
     CGO_ENABLED=0 GOOS=linux go build -mod=mod -ldflags="-w -s" -o /out/siem-api ./rest/*.go
 
 # Small runtime image
-FROM alpine:3.18
+FROM alpine:3.19
 
 # Install runtime dependencies
 RUN apk add --no-cache ca-certificates tzdata

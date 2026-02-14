@@ -387,7 +387,7 @@ func (s *APIServer) handleCreateForensicInvestigation(c *gin.Context) {
 		}
 	}
 	if inv.Analyst == "" {
-		inv.Analyst = "admin"
+		inv.Analyst = getUsernameFromContext(c)
 	}
 
 	if s.opensearch == nil {
@@ -674,7 +674,7 @@ func (s *APIServer) handleCreateForensicEvidence(c *gin.Context) {
 		}
 	}
 	if ev.CollectedBy == "" {
-		ev.CollectedBy = "admin"
+		ev.CollectedBy = getUsernameFromContext(c)
 	}
 
 	// Initialize chain of custody

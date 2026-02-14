@@ -1,5 +1,5 @@
 # Build frontend (React) and serve with nginx
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app/frontend
 
@@ -17,7 +17,7 @@ COPY src ./src
 RUN npm run build
 
 # Production image with nginx
-FROM nginx:1.23-alpine
+FROM nginx:1.25-alpine
 
 # Copy built files
 COPY --from=builder /app/frontend/build /usr/share/nginx/html

@@ -263,7 +263,7 @@ func (s *APIServer) handleCreateIntegration(c *gin.Context) {
 	req.Status = IntegrationStatusConfiguring
 	req.CreatedAt = time.Now()
 	req.UpdatedAt = time.Now()
-	req.CreatedBy = "admin" // TODO: Get from JWT
+	req.CreatedBy = getUsernameFromContext(c)
 	req.EventsCollected = 0
 	req.DataCollected = 0
 
