@@ -1,0 +1,132 @@
+name: Deploy to AWS ECS (Dev/HML)
+
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        default: "dev"
+        type: choice
+        options:
+          - dev
+          - hml
+
+env:
+  AWS_REGION: us-east-1
+  ECS_CLUSTER: nazarius-siem-poc-cluster-hml
+
+jobs:
+  deploy-backend:
+    name: Deploy Backend
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Generate image tag
+        id: tag
+        run: echo "TAG=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: sec-app-nazarius-siem-backend
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/nazarius-siem-poc-backend-hml:${{ steps.tag.outputs.TAG }}
+            ${{ steps.login-ecr.outputs.registry }}/nazarius-siem-poc-backend-hml:latest
+
+      - name: Get current task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition nazarius-siem-poc-backend-task \
+            --query taskDefinition > task-definition.json
+
+      - name: Update task definition with new image
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: nazarius-siem-poc-backend
+          image: ${{ steps.login-ecr.outputs.registry }}/nazarius-siem-poc-backend-hml:${{ steps.tag.outputs.TAG }}
+
+      - name: Deploy to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: nazarius-siem-poc-backend-service
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+          propagate-tags: SERVICE
+
+  deploy-frontend:
+    name: Deploy Frontend
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Generate image tag
+        id: tag
+        run: echo "TAG=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: sec-app-nazarius-siem-frontend
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/nazarius-siem-poc-frontend-hml:${{ steps.tag.outputs.TAG }}
+            ${{ steps.login-ecr.outputs.registry }}/nazarius-siem-poc-frontend-hml:latest
+
+      - name: Get current task definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition nazarius-siem-poc-frontend-task \
+            --query taskDefinition > task-definition.json
+
+      - name: Update task definition with new image
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: nazarius-siem-poc-frontend
+          image: ${{ steps.login-ecr.outputs.registry }}/nazarius-siem-poc-frontend-hml:${{ steps.tag.outputs.TAG }}
+
+      - name: Deploy to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: nazarius-siem-poc-frontend-service
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+          propagate-tags: SERVICE
