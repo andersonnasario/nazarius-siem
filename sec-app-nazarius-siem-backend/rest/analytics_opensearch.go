@@ -1007,23 +1007,27 @@ func (s *APIServer) checkDuplicateAnomaly(entityID, anomalyType string) (bool, s
 	}
 	
 	// Search for similar anomalies in the last 6 hours
-	query := fmt.Sprintf(`{
+	// Use structured query to prevent OpenSearch injection
+	safeEntityID := sanitizeAlphanumeric(entityID)
+	safeAnomalyType := sanitizeAlphanumeric(anomalyType)
+	queryMap := map[string]interface{}{
 		"size": 1,
-		"query": {
-			"bool": {
-				"must": [
-					{ "term": { "entity_id": "%s" } },
-					{ "term": { "anomaly_type": "%s" } },
-					{ "range": { "timestamp": { "gte": "now-6h" } } }
-				]
-			}
+		"query": map[string]interface{}{
+			"bool": map[string]interface{}{
+				"must": []map[string]interface{}{
+					{"term": map[string]interface{}{"entity_id": safeEntityID}},
+					{"term": map[string]interface{}{"anomaly_type": safeAnomalyType}},
+					{"range": map[string]interface{}{"timestamp": map[string]interface{}{"gte": "now-6h"}}},
+				},
+			},
 		},
-		"sort": [{ "timestamp": "desc" }]
-	}`, entityID, anomalyType)
-	
+		"sort": []map[string]interface{}{{"timestamp": "desc"}},
+	}
+	queryJSON, _ := json.Marshal(queryMap)
+
 	res, err := s.opensearch.Search(
 		s.opensearch.Search.WithIndex(mlAnomaliesIndex),
-		s.opensearch.Search.WithBody(strings.NewReader(query)),
+		s.opensearch.Search.WithBody(strings.NewReader(string(queryJSON))),
 	)
 	if err != nil {
 		return false, ""
@@ -1089,23 +1093,27 @@ func (s *APIServer) checkDuplicatePrediction(targetID, predictionType string) (b
 	}
 	
 	// Search for similar active predictions
-	query := fmt.Sprintf(`{
+	// Use structured query to prevent OpenSearch injection
+	safeTargetID := sanitizeAlphanumeric(targetID)
+	safePredictionType := sanitizeAlphanumeric(predictionType)
+	queryMap := map[string]interface{}{
 		"size": 1,
-		"query": {
-			"bool": {
-				"must": [
-					{ "term": { "target_id": "%s" } },
-					{ "term": { "prediction_type": "%s" } },
-					{ "term": { "status": "active" } },
-					{ "range": { "expires_at": { "gte": "now" } } }
-				]
-			}
-		}
-	}`, targetID, predictionType)
-	
+		"query": map[string]interface{}{
+			"bool": map[string]interface{}{
+				"must": []map[string]interface{}{
+					{"term": map[string]interface{}{"target_id": safeTargetID}},
+					{"term": map[string]interface{}{"prediction_type": safePredictionType}},
+					{"term": map[string]interface{}{"status": "active"}},
+					{"range": map[string]interface{}{"expires_at": map[string]interface{}{"gte": "now"}}},
+				},
+			},
+		},
+	}
+	queryJSON, _ := json.Marshal(queryMap)
+
 	res, err := s.opensearch.Search(
 		s.opensearch.Search.WithIndex(mlPredictionsIndex),
-		s.opensearch.Search.WithBody(strings.NewReader(query)),
+		s.opensearch.Search.WithBody(strings.NewReader(string(queryJSON))),
 	)
 	if err != nil {
 		return false, ""
@@ -1801,23 +1809,26 @@ func (s *APIServer) getAlertCountForResource(resourceID string) int {
 	if s.opensearch == nil {
 		return 0
 	}
-	
-	query := fmt.Sprintf(`{
+
+	// Use structured query to prevent OpenSearch injection
+	safeResourceID := sanitizeAlphanumeric(resourceID)
+	queryMap := map[string]interface{}{
 		"size": 0,
-		"query": {
-			"bool": {
-				"should": [
-					{ "match": { "resource_id": "%s" } },
-					{ "match": { "instance_id": "%s" } }
-				],
-				"minimum_should_match": 1
-			}
-		}
-	}`, resourceID, resourceID)
-	
+		"query": map[string]interface{}{
+			"bool": map[string]interface{}{
+				"should": []map[string]interface{}{
+					{"match": map[string]interface{}{"resource_id": safeResourceID}},
+					{"match": map[string]interface{}{"instance_id": safeResourceID}},
+				},
+				"minimum_should_match": 1,
+			},
+		},
+	}
+	queryJSON, _ := json.Marshal(queryMap)
+
 	res, err := s.opensearch.Search(
 		s.opensearch.Search.WithIndex("siem-alerts"),
-		s.opensearch.Search.WithBody(strings.NewReader(query)),
+		s.opensearch.Search.WithBody(strings.NewReader(string(queryJSON))),
 	)
 	if err != nil || res.IsError() {
 		return 0
@@ -1840,23 +1851,26 @@ func (s *APIServer) getAnomalyCountForResource(resourceID string) int {
 	if s.opensearch == nil {
 		return 0
 	}
-	
-	query := fmt.Sprintf(`{
+
+	// Use structured query to prevent OpenSearch injection
+	safeResourceID := sanitizeAlphanumeric(resourceID)
+	queryMap := map[string]interface{}{
 		"size": 0,
-		"query": {
-			"bool": {
-				"should": [
-					{ "match": { "entity_id": "%s" } },
-					{ "match": { "entity_name": "%s" } }
-				],
-				"minimum_should_match": 1
-			}
-		}
-	}`, resourceID, resourceID)
-	
+		"query": map[string]interface{}{
+			"bool": map[string]interface{}{
+				"should": []map[string]interface{}{
+					{"match": map[string]interface{}{"entity_id": safeResourceID}},
+					{"match": map[string]interface{}{"entity_name": safeResourceID}},
+				},
+				"minimum_should_match": 1,
+			},
+		},
+	}
+	queryJSON, _ := json.Marshal(queryMap)
+
 	res, err := s.opensearch.Search(
 		s.opensearch.Search.WithIndex(mlAnomaliesIndex),
-		s.opensearch.Search.WithBody(strings.NewReader(query)),
+		s.opensearch.Search.WithBody(strings.NewReader(string(queryJSON))),
 	)
 	if err != nil || res.IsError() {
 		return 0
